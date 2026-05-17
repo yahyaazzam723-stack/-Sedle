@@ -2,199 +2,408 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إلى سندس | عالم الفراشات والورد</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>بوابة صيدلية شاهين | الأرباح والاستشارات 🏥</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root {
-            --pink-deep: #ff4d6d;
-            --soft-bg: #fff5f7;
-            --text-dark: #590d22;
-        }
+        :root { --gold: #d4af37; --p-dark: #0a010a; --p-main: #1d051d; --glass: rgba(255, 255, 255, 0.05); --success: #27ae60; --danger: #e74c3c; --info: #3498db; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; background: radial-gradient(circle, var(--p-main), var(--p-dark)); color: #fff; font-family: sans-serif; overflow-x: hidden; min-height: 100vh; display: flex; justify-content: center; align-items: center; transition: all 0.3s ease; }
+        #app-container { position: relative; overflow: hidden; background: radial-gradient(circle, var(--p-main), var(--p-dark)); width: 100vw; height: 100vh; margin: auto; border: 1px solid rgba(212,175,55,0.2); display: flex; flex-direction: column; }
+        
+        .view-controls { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 10000; display: flex; gap: 10px; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 50px; border: 1px solid var(--gold); backdrop-filter: blur(5px); }
+        .view-btn { width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; cursor: pointer; background: var(--glass); color: #fff; border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; }
+        
+        .auth-overlay { position: fixed; inset: 0; background: var(--p-dark); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .auth-card { background: var(--glass); backdrop-filter: blur(10px); padding: 30px; border-radius: 20px; border: 1px solid var(--gold); width: 100%; max-width: 400px; text-align: center; }
+        input { width: 100%; padding: 15px; margin-bottom: 15px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #fff; text-align: center; outline: none; }
+        .btn-login { width: 100%; padding: 15px; background: var(--gold); border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
+        
+        header { padding: 60px 20px 15px; background: var(--glass); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; }
+        .res-name { font-weight: bold; color: var(--gold); }
+        
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; flex-shrink: 0; }
+        .stat-card { background: var(--glass); padding: 12px; border-radius: 12px; border-right: 3px solid var(--gold); cursor: pointer; }
+        .stat-val { font-size: 20px; font-weight: bold; margin-top: 5px; }
 
-        body {
-            margin: 0; padding: 0;
-            background: var(--soft-bg);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            height: 100vh;
-            display: flex; align-items: center; justify-content: center;
-            overflow: hidden; text-align: center;
-        }
+        .history-report { padding: 0 15px 15px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .h-box { background: rgba(255,255,255,0.03); padding: 8px; border-radius: 8px; text-align: center; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; }
+        .h-box b { font-size: 14px; color: var(--gold); }
+        .p-box { margin-top: 4px; font-size: 9px; color: var(--success); }
 
-        .container {
-            position: relative; z-index: 10;
-            max-width: 550px; width: 90%;
-            padding: 40px 25px;
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(12px);
-            border-radius: 40px;
-            box-shadow: 0 15px 45px rgba(255, 77, 109, 0.2);
-            border: 2px solid #fff;
-        }
+        #orders-list { padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; overflow-y: auto; flex: 1; padding-bottom: 30px; align-content: start; }
+        .order-card { background: var(--glass); border-radius: 15px; padding: 12px; border: 1px solid rgba(255,255,255,0.1); position: relative; display: flex; flex-direction: column; justify-content: space-between; height: fit-content; transition: 0.3s; }
+        
+        .status-new { border-color: var(--gold); }
+        .status-active { border-color: var(--info); box-shadow: 0 0 10px rgba(52, 152, 219, 0.2); }
 
-        h1 { color: var(--pink-deep); margin-bottom: 5px; font-size: 2.2rem; }
+        .btn-act { padding: 8px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; width: 100%; margin-top: 8px; font-size: 11px; }
+        .btn-accept { background: var(--success); color: #fff; }
+        .btn-follow { background: var(--info); color: #fff; }
 
-        .btn-surprise {
-            background: linear-gradient(45deg, #ff4d6d, #ff85a1);
-            color: white; border: none;
-            padding: 20px 45px; font-size: 1.4rem;
-            border-radius: 50px; cursor: pointer;
-            box-shadow: 0 8px 25px rgba(255, 77, 109, 0.4);
-            transition: transform 0.2s; font-weight: bold; margin-top: 20px;
-        }
+        #report-modal { display: none; position: absolute; inset: 0; background: var(--p-dark); z-index: 3000; flex-direction: column; }
+        .modal-header { padding: 15px; background: var(--glass); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--gold); }
+        .report-list { flex: 1; overflow-y: auto; padding: 15px; }
 
-        .particle {
-            position: fixed; pointer-events: none; z-index: 1000;
-            animation: moveAndFade 2.5s ease-out forwards;
-        }
+        #active-chat-box { display: none; position: absolute; inset: 0; background: var(--p-dark); z-index: 2000; flex-direction: column; }
+        .chat-header { padding: 15px; background: var(--glass); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(212,175,55,0.3); }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 800px; margin: 0 auto; }
+        .msg { max-width: 85%; padding: 10px 15px; border-radius: 15px; font-size: 14px; word-break: break-word; }
+        .msg.store { background: var(--gold); color: #000; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .msg.client { background: #333; color: #fff; align-self: flex-start; border-bottom-left-radius: 2px; }
+        
+        .chat-input-area { padding: 15px; display: flex; gap: 10px; background: var(--glass); border-top: 1px solid rgba(255,255,255,0.1); width: 100%; max-width: 800px; margin: 0 auto; }
+        .chat-input-area input { margin: 0; flex: 1; padding: 12px; border-radius: 10px; background: rgba(0,0,0,0.2); border: 1px solid #333; color: #fff; }
+        .btn-finish { background: var(--info); color: #fff; border: none; border-radius: 12px; padding: 14px; font-weight: bold; cursor: pointer; margin: 0 auto 5px; width: calc(100% - 30px); max-width: 770px; font-size: 14px; }
+        .btn-cancel-chat { background: rgba(255,255,255,0.1); color: var(--danger); border: 1px solid var(--danger); border-radius: 12px; padding: 10px; font-weight: bold; cursor: pointer; margin: 0 auto 15px; width: calc(100% - 30px); max-width: 770px; font-size: 12px; }
 
-        @keyframes moveAndFade {
-            0% { transform: translate(0, 0) rotate(0deg) scale(0); opacity: 1; }
-            100% { transform: translate(var(--tx), var(--ty)) rotate(var(--tr)) scale(1.5); opacity: 0; }
-        }
+        #toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--gold); color: #000; padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: bold; display: none; z-index: 9999; }
+        .sync-loader { position: fixed; top: 0; left: 0; height: 3px; background: var(--gold); z-index: 9999; transition: width 0.1s linear; }
+        .empty-state { text-align: center; opacity: 0.3; margin-top: 50px; grid-column: span 2; }
 
-        .message-box { margin-top: 30px; display: none; animation: fadeIn 1s ease; }
-
-        .dua-card {
-            background: #fff0f3; padding: 20px; border-radius: 20px;
-            color: var(--text-dark); font-size: 1.2rem;
-            border-right: 6px solid var(--pink-deep);
-            margin-bottom: 15px; text-align: right; line-height: 1.6;
-        }
-
-        .sweet-text { color: #c9184a; font-weight: bold; font-size: 1.1rem; }
-
-        .eid-text-scroll {
-            max-height: 450px; overflow-y: auto; line-height: 2;
-            padding: 15px; text-align: justify;
-            color: var(--text-dark); font-size: 1.15rem;
-            scrollbar-width: thin; scrollbar-color: var(--pink-deep) var(--soft-bg);
-        }
-
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        #order-details-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 5000; align-items: center; justify-content: center; padding: 20px; }
+        .details-card { background: var(--p-main); border: 2px solid var(--gold); padding: 20px; border-radius: 20px; width: 100%; max-width: 400px; }
+        .details-card textarea { width: 100%; height: 120px; background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; padding: 10px; margin: 10px 0; resize: none; font-family: sans-serif; font-size: 14px; }
+        .total-box { background: rgba(212,175,55,0.1); border: 1px dashed var(--gold); border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 15px; }
     </style>
 </head>
-<body>
+<body onclick="initAudio()">
 
-    <div class="container">
-        <div id="wrapper">
-            <h1 id="main-title">أهلاً يا سندس 🌸</h1>
-            <p id="ramadan-status" style="color: #666; font-weight: 500;"></p>
-            
-            <button class="btn-surprise" id="main-btn" onclick="celebrate(event)">
-                افتحي هديتك ✨
-            </button>
+<div class="view-controls">
+    <div class="view-btn" onclick="setVSize('mobile')"><i class="fas fa-mobile-alt"></i></div>
+    <div class="view-btn" onclick="setVSize('tablet')"><i class="fas fa-tablet-alt"></i></div>
+    <div class="view-btn" onclick="setVSize('laptop')"><i class="fas fa-desktop"></i></div>
+</div>
 
-            <div id="message-box" class="message-box">
-                <div class="dua-card" id="dua-text"></div>
-                <div class="sweet-text" id="sweet-word"></div>
-            </div>
+<div id="app-container">
+    <div class="sync-loader" id="sync-bar"></div>
+    <div id="toast"></div>
+
+    <div id="auth-screen" class="auth-overlay">
+        <div class="auth-card">
+            <img src="https://i.postimg.cc/QxzPkmPf/Whats-App-Image-2026-04-10-at-6-22-30-PM-t7edrz.jpg" width="80" style="border-radius:20px; margin-bottom:15px;">
+            <h2 style="color:var(--gold);">بوابة الصيدليات</h2>
+            <input type="email" id="login-email" placeholder="البريد الإلكتروني">
+            <input type="password" id="login-code" placeholder="كود التفعيل">
+            <button class="btn-login" onclick="checkAuth()">دخول المناوبة</button>
         </div>
     </div>
 
-    <script>
-        const ramadanStart = new Date('2026-02-18');
-        const now = new Date();
-        const day = Math.floor((now - ramadanStart) / (1000 * 60 * 60 * 24)) + 1;
+    <div id="main-content" style="display:none; flex-direction:column; height:100vh;">
+        <header>
+            <div class="res-name" id="display-res-name">اسم الصيدلية</div>
+            <button onclick="logout()" style="background:none; border:none; color:var(--danger); font-size:18px;"><i class="fas fa-power-off"></i></button>
+        </header>
 
-        if(day > 0 && day <= 30) {
-            document.getElementById('ramadan-status').innerText = `نحن اليوم في ${day} رمضان ✨`;
+        <div class="stats-grid">
+            <div class="stat-card"><span>استشارات قادمة</span><div id="stat-count" class="stat-val">0</div></div>
+            <div class="stat-card" onclick="openReportModal('day')"><span>أرباح اليوم</span><div id="today-profit" class="stat-val" style="color:var(--info);">0</div></div>
+        </div>
+
+        <div class="history-report">
+            <div class="h-box" onclick="openReportModal('day')"><span>اليوم</span><b id="report-day">0</b><div class="p-box" id="p-day">0</div></div>
+            <div class="h-box" onclick="openReportModal('week')"><span>الأسبوع</span><b id="report-week">0</b><div class="p-box" id="p-week">0</div></div>
+            <div class="h-box" onclick="openReportModal('month')"><span>الشهر</span><b id="report-month">0</b><div class="p-box" id="p-month">0</div></div>
+        </div>
+
+        <div id="orders-list"></div>
+    </div>
+
+    <div id="report-modal">
+        <div class="modal-header">
+            <b id="report-title">الأرشيف</b>
+            <button onclick="closeReportModal()" style="background:none; border:none; color:#fff; font-size:20px;"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="report-list" id="report-items-container"></div>
+    </div>
+
+    <div id="active-chat-box">
+        <div class="chat-header">
+            <div>
+                <div id="client-name-chat" style="font-weight:bold; font-size:16px;">...</div>
+                <div id="active-order-id" style="font-size:10px; opacity:0.6;">...</div>
+            </div>
+            <button onclick="closeChat()" style="background:none; border:none; color:#fff; font-size:22px;"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="chat-messages" id="chat-flow"></div>
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" placeholder="اكتب ردك الطبي هنا..." onkeydown="if(event.key==='Enter') sendMsg()">
+            <button onclick="sendMsg()" style="background:var(--gold); border:none; padding:10px 15px; border-radius:10px;"><i class="fas fa-paper-plane"></i></button>
+        </div>
+        <button class="btn-finish" onclick="showDetailsBox()">إرسال الفاتورة للمريض 🏥</button>
+        <button class="btn-cancel-chat" onclick="cancelDueToNoResponse()">إلغاء الاستشارة (عدم رد العميل) ⏳</button>
+    </div>
+
+    <div id="order-details-modal">
+        <div class="details-card">
+            <h3 style="color:var(--gold); margin:0 0 10px 0; font-size:16px;">تحديد الأدوية والأسعار 📝</h3>
+            <p style="font-size:11px; opacity:0.8;">اكتب الدواء وبجانبه السعر (سيتم الجمع تلقائياً)</p>
+            <textarea id="order-items-input" placeholder="مثال:&#10;بنادول 5000&#10;شامبو 12000" oninput="calculateTotal()"></textarea>
+            <div class="total-box">
+                <span style="font-size: 12px; opacity: 0.8;">إجمالي قيمة المواد:</span><br>
+                <b id="live-total-price" style="font-size: 20px; color: var(--gold);">0</b> <small>ل.س</small>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button onclick="completeConsultation()" class="btn-login" style="flex:2;">تأكيد وأرشفة</button>
+                <button onclick="document.getElementById('order-details-modal').style.display='none'" style="flex:1; background:var(--glass); color:#fff; border:1px solid #555; border-radius:12px; cursor:pointer;">إلغاء</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const _sb = supabase.createClient('https://ricoslplbhphydhtrufe.supabase.co', 'sb_publishable_k6LgEuwPLdCsBMCFC12wfQ_BSOJotuw');
+    let currentRes = null;
+    let lastCount = 0;
+    let refreshTimer = 0;
+    let activeOrderId = null;
+    let chatChannel = null;
+    let statusChannel = null;
+    let msgIds = new Set();
+    let historyOrders = [];
+    let currentActiveOrders = []; 
+    const sound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    // تعديل: متغير لـ polling الرسائل الاحتياطي في حال الـ Realtime لم يشتغل
+    let _msgPollInterval = null;
+
+    function initAudio() { sound.play().then(() => { sound.pause(); sound.currentTime = 0; }).catch(() => {}); }
+
+    function setVSize(type) {
+        const container = document.getElementById('app-container');
+        if(type === 'mobile') { container.style.width = '375px'; container.style.height = '667px'; }
+        else if(type === 'tablet') { container.style.width = '768px'; container.style.height = '1024px'; }
+        else { container.style.width = '100vw'; container.style.height = '100vh'; }
+    }
+
+    async function checkAuth() {
+        const email = document.getElementById('login-email').value;
+        const code = document.getElementById('login-code').value;
+        const { data } = await _sb.from('pharmacies').select('*').eq('email', email).eq('access_code', code).single();
+        if (data) { currentRes = data; localStorage.setItem('sh_ph_session', JSON.stringify(data)); startApp(); }
+        else alert("بيانات الدخول غير صحيحة");
+    }
+
+    function startApp() {
+        const session = localStorage.getItem('sh_ph_session');
+        if (session) currentRes = JSON.parse(session);
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('main-content').style.display = 'flex';
+        document.getElementById('display-res-name').innerText = currentRes.name;
+        loadOrders(true);
+        loadHistory();
+        setInterval(() => {
+            refreshTimer += 33.4;
+            document.getElementById('sync-bar').style.width = refreshTimer + "%";
+            if (refreshTimer >= 100) { refreshTimer = 0; loadOrders(); loadHistory(); }
+        }, 1000);
+    }
+
+    async function loadHistory() {
+        if(!currentRes) return;
+        const today = new Date(); today.setHours(0,0,0,0);
+        const { data: all } = await _sb.from('sh_public_orders').select('*').eq('pharmacy_id', currentRes.id).eq('status', 'completed_consultation');
+        if(all) {
+            historyOrders = all;
+            const d = all.filter(o => new Date(o.created_at) >= today);
+            const calcProfit = (list) => list.reduce((sum, o) => sum + (Number(o.delivery_price) || 0), 0);
+            document.getElementById('today-profit').innerText = calcProfit(d).toLocaleString();
+            document.getElementById('report-day').innerText = d.length;
+            document.getElementById('p-day').innerText = calcProfit(d).toLocaleString();
         }
+    }
 
-        function celebrate(e) {
-            const elements = ['🌸', '🌹', '🦋', '✨', '💖', '🌼', '🌷'];
-            for (let i = 0; i < 60; i++) {
-                const p = document.createElement('div');
-                p.className = 'particle';
-                p.innerText = elements[Math.floor(Math.random() * elements.length)];
-                const angle = Math.random() * Math.PI * 2;
-                const dist = Math.random() * 600 + 50;
-                p.style.setProperty('--tx', `${Math.cos(angle) * dist}px`);
-                p.style.setProperty('--ty', `${Math.sin(angle) * dist}px`);
-                p.style.setProperty('--tr', `${Math.random() * 720}deg`);
-                p.style.left = (e ? e.clientX : window.innerWidth/2) + 'px';
-                p.style.top = (e ? e.clientY : window.innerHeight/2) + 'px';
-                p.style.fontSize = '24px';
-                document.body.appendChild(p);
-                setTimeout(() => p.remove(), 2500);
+    async function loadOrders(isFirst = false) {
+        if (!currentRes) return;
+        const { data: orders } = await _sb.from('sh_public_orders').select('*').eq('res_type', 'pharmacy').in('status', ['searching', 'consulting', 'accepted']).order('created_at', { ascending: false });
+        
+        currentActiveOrders = (orders || []).filter(o => 
+            (o.target_pharmacy === currentRes.name || Number(o.pharmacy_id) === Number(currentRes.id)) && 
+            o.status !== 'completed_consultation'
+        );
+
+        if (!isFirst && currentActiveOrders.length > lastCount) { sound.play().catch(() => {}); showToast("استشارة جديدة 🏥"); }
+        lastCount = currentActiveOrders.length;
+        document.getElementById('stat-count').innerText = currentActiveOrders.length;
+        renderOrders(currentActiveOrders);
+    }
+
+    function renderOrders(orders) {
+        const list = document.getElementById('orders-list');
+        if (orders.length === 0) { list.innerHTML = `<div class="empty-state"><i class="fas fa-check-circle"></i><p>الواجهة صافية.. لا توجد استشارات نشطة</p></div>`; return; }
+        list.innerHTML = orders.map(o => `
+            <div class="order-card ${o.status === 'consulting' || o.status === 'accepted' ? 'status-active' : 'status-new'}" id="card-${o.id}">
+                <div style="font-size:9px; opacity:0.6;">#${String(o.id).slice(-4)}</div>
+                <div style="font-weight:bold; font-size:13px; margin:5px 0;">${o.customer_name || 'عميل'}</div>
+                <button class="btn-act ${o.status === 'consulting' || o.status === 'accepted' ? 'btn-follow' : 'btn-accept'}" onclick="openChat('${o.id}')">
+                    ${o.status === 'consulting' || o.status === 'accepted' ? 'متابعة الاستشارة' : 'قبول الاستشارة'}
+                </button>
+            </div>
+        `).join('');
+    }
+
+    async function openChat(orderId) {
+        // تعديل: تحديد نوع المعرف تلقائياً - رقم إذا كان رقماً، نص إذا كان UUID
+        activeOrderId = isNaN(orderId) ? String(orderId) : Number(orderId);
+        msgIds.clear();
+        await _sb.from('sh_public_orders').update({ status: 'accepted', pharmacy_id: currentRes.id, restaurant_name: currentRes.name }).eq('id', activeOrderId);
+        document.getElementById('active-chat-box').style.display = 'flex';
+        document.getElementById('chat-flow').innerHTML = '';
+
+        if (statusChannel) _sb.removeChannel(statusChannel);
+        statusChannel = _sb.channel('st_' + activeOrderId).on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sh_public_orders', filter: `id=eq.${activeOrderId}` }, p => {
+            if (p.new.status === 'completed_consultation' || p.new.status === 'cancelled') {
+                closeChat();
             }
-            showContent();
-        }
+        }).subscribe();
 
-        function showContent() {
-            const box = document.getElementById('message-box');
-            const dua = document.getElementById('dua-text');
-            const word = document.getElementById('sweet-word');
-            const wrapper = document.getElementById('wrapper');
-            const btn = document.getElementById('main-btn');
+        const { data: order } = await _sb.from('sh_public_orders').select('*').eq('id', activeOrderId).single();
+        document.getElementById('client-name-chat').innerText = order?.customer_name || 'عميل شاهين';
+        document.getElementById('active-order-id').innerText = "#" + activeOrderId;
 
-            if (day < 3) {
-                box.style.display = 'block';
-                dua.innerText = "صبر جميل يا سندس..";
-                word.innerText = "الرسائل ستبدأ في 3 رمضان، ترقبي المفاجآت!";
-            } 
-            else if (day >= 3 && day < 30) {
-                box.style.display = 'block';
-                const data = getDailyData(day);
-                dua.innerHTML = `🤲 <b>دعوة لكِ:</b><br>${data.dua}`;
-                word.innerHTML = `💌 <b>كلمة لكِ:</b><br>${data.word}`;
-            } 
-            else {
-                btn.style.display = 'none';
-                wrapper.innerHTML = `
-                    <h1 style="font-size: 2.2rem; margin-bottom: 20px;">ليلة العيد يا سندس! 🦋</h1>
-                    <div class="eid-text-scroll">
-                        <b>إلى الرقيقة سندس..</b><br>
-                        ها نحن نودع شهر الخير، ونسدل الستار على أيامٍ كانت بوجودكِ أجمل وألطف. أريد أن أخبركِ في هذه الليلة المباركة، ليلة الجوائز والبهجة، أنكِ كنتِ وما زلتِ "الحدث الأجمل" في تقويمي السنوي.
-                        <br><br>
-                        بصفتي مبرمج (YAHYA.EXE.V1)، اعتدتُ أن أتعامل مع الأرقام والمنطق، ولكنني أمام رقتكِ وجمال روحكِ، أقفُ عاجزاً عن صياغة "خوارزمية" تصفُ طيبتكِ. أنتِ لستِ مجرد إنسانة عابرة، بل أنتِ "الكمال" الذي لا يحتاج إلى تحديث، والجمال الذي يتجلى في أبهى صوره دون عناء. 
-                        <br><br>
-                        <b>سندس، أريدكِ أن تعلمي كم أقدر صراحتكِ ونقاء قلبكِ، وأعتز بوجودكِ كأغلى صديقة وسند في حياتي. ورغم أن ظروفي الخاصة في الوقت الحالي تضع قيوداً على مساراتي ولا تمكنني من مبادلتكِ ذات الخطوات، إلا أنني أؤمن دوماً بأننا لا نعلم ما كتبه الله لنا وما قدّره في غيبه؛ فلا تحزني يا سندس، فربما كان في هذا النصيب خيرٌ خفيٌّ لنا لا ندركه الآن، فالله هو المدبر والمقدر لكل جميل. مكانتكِ عندي ثابتة، وأنتِ الشخص الذي أتمنى دائماً أن يبقى بجانبي، نتقاسم الأيام بصدقنا المعهود.</b>
-                        <br><br>
-                        أريدُكِ أن تعلمي يقيناً، أن ضحكتكِ هي "العيد" قبل حلوله، وهي النور الذي يضيء عتمة الأيام الصعبة. لقد كنتِ السند واللطف، والقلب الذي يشبه بياض الغيم. شكرًا لأنكِ "سندس"، شكراً لأنكِ منحتِ أيامي معنىً أعمق بوجودكِ فيها.
-                        <br><br>
-                        أتمنى لكِ عيداً يشبه قلبكِ، مليئاً بالورود والمسرات، وأن تظلي دائماً تلك الفراشة التي تنشر الفرح حيثما حطت.
-                        <br><br>
-                        <b>عيد مبارك يا أغلى سندس.. وكل عام وأنتِ بمليار خير وسعادة! ❤️✨</b>
-                        <br><br>
-                        <span style="font-size: 0.9rem; color: #888;">--- مبرمجكِ المخلص: (YAHYA.EXE.V1)</span>
-                    </div>
-                `;
-                setInterval(() => celebrate(null), 3000);
+        const { data: msgs } = await _sb.from('sh_messages').select('*').eq('order_id', activeOrderId).order('created_at', { ascending: true });
+        if (msgs) msgs.forEach(m => { msgIds.add(m.id); addMsgToUI(m.message, m.sender); });
+        scrollChat();
+
+        if (chatChannel) _sb.removeChannel(chatChannel);
+        // تعديل: استخدام channel بدون filter لتجاوز مشكلة Realtime غير المفعّل على الجدول
+        chatChannel = _sb.channel('ch_msgs_' + activeOrderId)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sh_messages' }, p => {
+                const m = p.new;
+                // تعديل: مقارنة order_id بعد تحويل النوعين لنص لضمان التطابق
+                if (String(m.order_id) !== String(activeOrderId)) return;
+                if (msgIds.has(m.id)) return;
+                msgIds.add(m.id);
+                addMsgToUI(m.message, m.sender);
+                if (m.sender === 'client') { sound.play().catch(() => {}); showToast("رسالة جديدة من العميل 💬"); }
+                scrollChat();
+            })
+            .subscribe((status) => {
+                console.log('[SHAHEN PH] channel status:', status);
+            });
+
+        // تعديل: polling احتياطي كل 3 ثواني لضمان وصول الرسائل حتى لو الـ Realtime لم يشتغل
+        if (_msgPollInterval) clearInterval(_msgPollInterval);
+        _msgPollInterval = setInterval(async () => {
+            if (!activeOrderId) { clearInterval(_msgPollInterval); return; }
+            const { data: newMsgs } = await _sb.from('sh_messages').select('*').eq('order_id', activeOrderId).order('created_at', { ascending: true });
+            if (newMsgs) {
+                newMsgs.forEach(m => {
+                    if (msgIds.has(m.id)) return;
+                    msgIds.add(m.id);
+                    addMsgToUI(m.message, m.sender);
+                    if (m.sender === 'client') { sound.play().catch(() => {}); showToast("رسالة جديدة من العميل 💬"); }
+                });
+                if (newMsgs.some(m => !msgIds.has(m.id - 1))) scrollChat();
             }
-        }
+        }, 3000);
+    }
 
-        function getDailyData(d) {
-            const data = {
-                3: { dua: "اللهم اجعل يوم سندس مليئاً بالبشائر والرضا.", word: "بدايتنا هنا.. أنتِ كالفراشة التي تزيد المكان بهجة." },
-                4: { dua: "يا رب احفظ لها ابتسامتها التي تضيء عالمي.", word: "رقتكِ يا سندس تغلب أرق أنواع الورد في عز تفتحه." },
-                5: { dua: "اللهم افتح لها أبواب الخير والتوفيق في كل خطوة.", word: "أنتِ الشخص الذي لا يتكرر مرتين، كود فريد لا مثيل له." },
-                6: { dua: "اللهم ارزقها سكينة القلب وطمأنينة الروح.", word: "ضحكتكِ هي 'الموسيقى' التي تعدل مزاج يومي." },
-                7: { dua: "يا رب اجعل لسندس نصيباً من كل فرحة تسكن قلبها.", word: "أنتِ كالغيمة اللطيفة التي تمطر حباً أينما حلت." },
-                8: { dua: "اللهم جمل مستقبلها واجعله أجمل مما تتمنى.", word: "سندس.. اسمكِ وحده يكفي ليزهر قلبي وردًا." },
-                9: { dua: "يا رب اكتب لها النجاح في كل أمر تسعى إليه.", word: "أنتِ المعنى الحقيقي لكلمة 'لطافة' في هذا العالم." },
-                10: { dua: "اللهم بارك لها في أيامها واقبل طاعتها الخالصة.", word: "وجودكِ يا سندس يجعل أيامي أكثر إشراقاً وجمالاً." },
-                11: { dua: "اللهم أرح قلبها بذكرك وطمأنينة قربك.", word: "لكِ في قلبي مقامٌ لا يصله أحد، يا أرقى سندس." },
-                12: { dua: "يا رب ارزقها سعادة لا تنتهي وقرة عين لا تنقطع.", word: "كلما نظرت لضحكتكِ، أدركت أن الجمال يكمن في البساطة." },
-                13: { dua: "اللهم احمِ قلبها من كدر الدنيا وضيق الحياة.", word: "أنتِ الرفيقة التي تشبه نسمة الفجر الباردة." },
-                14: { dua: "يا رب اجبر خاطرها وحقق لها أمنية طال انتظارها.", word: "رؤية اسمكِ في يومي تغير نظامي للأفضل دائماً." },
-                15: { dua: "اللهم اجعلها ممن نالوا استجابة الدعاء في منتصف الشهر.", word: "نصف الشهر مرّ، وأنتِ لا تزالين أجمل تفاصيله." },
-                16: { dua: "يا رب نور دربها بنور الإيمان واليقين الصادق.", word: "يا سندس، أنتِ نادرة كالتحف التي لا تقدر بثمن." },
-                17: { dua: "اللهم عطر أيامها برياحين الجنة وراحة البال.", word: "أنتِ الشخص الذي يثبت لي أن الطيبين لا زالوا هنا." },
-                18: { dua: "يا رب أعطها في هذه الدنيا حسنة وفي الآخرة حسنة.", word: "لطافتكِ هي الخيط الذي يربط يومي بالسعادة." },
-                19: { dua: "اللهم اجعل أيامها القادمة محفوفة باليسر والبركة.", word: "يا سندس، أنتِ كالنجمة التي تهدي التائهين بنورها." },
-                20: { dua: "يا رب بارك لها في صحتها وجمال روحها النقية.", word: "بدأنا في العشر الأواخر، ودعواتي لكِ تزداد عمقاً." },
-                21: { dua: "اللهم اكتب لها في هذه العشر عتقاً من كل هم.", word: "أنتِ الهدية التي أرسلها القدر لتجمل واقعي." },
-                22: { dua: "يا رب لا ترد لها دعاءً ولا تخيب لها رجاءً.", word: "يا سندس، قلبكِ أبيض كالياسمين وروحكِ رقيقة." },
-                23: { dua: "اللهم ارزقها فضل ليلة القدر وغير حالها للأفضل.", word: "أنتِ الملاذ الدافئ في وسط هذه الأيام المزدحمة." },
-                24: { dua: "يا رب اكتب لها توفيقاً يلازمها في حياتها.", word: "ضحكتكِ هي التحديث السنوي لسعادتي يا سندس." },
-                25: { dua: "اللهم أسعدها في الدارين سعادة لا توصف.", word: "أنتِ لستِ مجرد عابرة، أنتِ أثرٌ جميل لا يمحى." },
-                26: { dua: "يا رب ارفع قدرها في الأرض وفي السماء.", word: "يا سندس، أنتِ تفصيل جميل في حكاية حياتي." },
-                27: { dua: "اللهم تقبل منها كل ركعة وسجدة ودعاء.", word: "يا أجمل ختام لرمضان، أنتِ العيد قبل أوانه." },
-                28: { dua: "يا رب اختم شهرها بالمغفرة والقبول والعفو.", word: "اسمكِ محفور في ذاكرتي كأغلى الأكواد البرمجية." },
-                29: { dua: "اللهم ارزقها فرحة تجعلها تنسى كل تعب مضى.", word: "سندس.. أنتِ جوهرة هذا الشهر وكل شهر." }
-            };
-            return data[d] || { dua: "اللهم بارك لها في أيامها.", word: "أنتِ دائماً مميزة يا سندس." };
+    async function sendMsg() {
+        const inp = document.getElementById('chat-input');
+        const text = inp.value.trim();
+        if (!text || !activeOrderId) return;
+        inp.value = '';
+        addMsgToUI(text, 'store');
+        scrollChat();
+        // تعديل: إرسال order_id بنوعه الصحيح لدعم UUID والأرقام
+        const { data: saved, error: msgErr } = await _sb.from('sh_messages').insert({ order_id: activeOrderId, sender: 'store', message: text }).select().single();
+        if (msgErr) {
+            console.error('[SHAHEN PH sendMsg] فشل إرسال الرسالة:', msgErr);
+            showToast("فشل إرسال الرسالة ❌");
         }
-    </script>
+        if (saved) msgIds.add(saved.id);
+    }
+
+    function addMsgToUI(text, sender) {
+        const flow = document.getElementById('chat-flow');
+        const wrap = document.createElement('div');
+        wrap.className = `msg ${sender === 'store' ? 'store' : 'client'}`;
+        wrap.style.alignSelf = sender === 'store' ? 'flex-end' : 'flex-start';
+        wrap.innerText = text;
+        flow.appendChild(wrap);
+    }
+
+    function scrollChat() { const flow = document.getElementById('chat-flow'); flow.scrollTop = flow.scrollHeight; }
+
+    function showDetailsBox() {
+        document.getElementById('order-items-input').value = "";
+        document.getElementById('live-total-price').innerText = "0";
+        document.getElementById('order-details-modal').style.display = 'flex';
+    }
+
+    function calculateTotal() {
+        const text = document.getElementById('order-items-input').value;
+        const numbers = text.match(/\d+/g);
+        const total = numbers ? numbers.reduce((sum, num) => sum + parseInt(num), 0) : 0;
+        document.getElementById('live-total-price').innerText = total.toLocaleString();
+        return total;
+    }
+
+    async function completeConsultation() {
+        const details = document.getElementById('order-items-input').value.trim();
+        const totalPrice = calculateTotal();
+        if (!details || totalPrice === 0) { alert("يرجى كتابة الأصناف وأسعارها بشكل صحيح"); return; }
+        
+        const targetId = activeOrderId;
+        const finalInvoice = `🧾 تفاصيل فاتورة الصيدلية:\n------------------\n${details}\n------------------\n💰 الإجمالي النهائي: ${totalPrice.toLocaleString()} ل.س`;
+
+        const { error } = await _sb.from('sh_public_orders').update({ 
+            status: 'completed_consultation',
+            order_details: finalInvoice,
+            order_price: totalPrice
+        }).eq('id', targetId);
+        
+        if(!error) {
+            await _sb.from('sh_messages').insert({ order_id: targetId, sender: 'store', message: finalInvoice });
+            currentActiveOrders = currentActiveOrders.filter(o => o.id !== targetId);
+            renderOrders(currentActiveOrders); 
+            document.getElementById('order-details-modal').style.display = 'none';
+            showToast("تم الحفظ بنجاح وإرسال الفاتورة ✅");
+            closeChat();
+        } else {
+            alert("خطأ: " + error.message);
+        }
+    }
+
+    async function cancelDueToNoResponse() {
+        if (!activeOrderId) return;
+        if (!confirm("هل أنت متأكد من إلغاء الاستشارة بسبب عدم رد العميل؟")) return;
+        const targetId = activeOrderId;
+        const { error } = await _sb.from('sh_public_orders').update({ status: 'cancelled', order_details: 'تم الإلغاء لعدم رد العميل' }).eq('id', targetId);
+        if (!error) {
+            showToast("تم إلغاء الاستشارة ⏳");
+            closeChat();
+        } else {
+            alert("خطأ أثناء الإلغاء: " + error.message);
+        }
+    }
+
+    function closeChat() {
+        if (chatChannel) _sb.removeChannel(chatChannel);
+        if (statusChannel) _sb.removeChannel(statusChannel);
+        // تعديل: إيقاف الـ polling عند إغلاق المحادثة
+        if (_msgPollInterval) { clearInterval(_msgPollInterval); _msgPollInterval = null; }
+        document.getElementById('active-chat-box').style.display = 'none';
+        activeOrderId = null;
+        loadOrders(); loadHistory();
+    }
+
+    function openReportModal(period) {
+        const container = document.getElementById('report-items-container');
+        container.innerHTML = historyOrders.map(o => `
+            <div class="report-item" style="background: rgba(255,255,255,0.05); border-radius: 10px; padding: 10px; margin-bottom: 10px; border-right: 3px solid var(--gold);">
+                <b>${o.customer_name}</b><br>
+                <small>#${o.id} | ${new Date(o.created_at).toLocaleString('ar-SY')}</small>
+                <div style="font-size:10px; color:var(--gold); white-space:pre-line; margin-top:5px;">${o.order_details || ''}</div>
+            </div>
+        `).join('') || '<p style="text-align:center;">لا توجد بيانات</p>';
+        document.getElementById('report-modal').style.display = 'flex';
+    }
+    function closeReportModal() { document.getElementById('report-modal').style.display = 'none'; }
+    function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000); }
+    function logout() { localStorage.removeItem('sh_ph_session'); location.reload(); }
+    window.onload = () => { if (localStorage.getItem('sh_ph_session')) startApp(); };
+</script>
 </body>
 </html>
