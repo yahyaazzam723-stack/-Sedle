@@ -340,9 +340,20 @@
         }
 
         /* ===== [TAXI-SYSTEM] CSS تطبيق المندوب ===== */
-        #p-taxi-driver { padding: 12px; padding-bottom: 80px; flex-direction: column; }
+        #p-taxi-driver { padding: 0; padding-bottom: 80px; flex-direction: column; overflow-y:auto; }
+        /* [TAXI-RED] ألوان التاكسي الحمراء في المندوب */
+        .taxi-req-card {
+            border:1.5px solid rgba(231,76,60,0.4) !important;
+            background:rgba(231,76,60,0.05) !important;
+        }
+        .taxi-req-card:hover { background:rgba(231,76,60,0.1) !important; }
+        .taxi-accept-btn {
+            background:#e74c3c !important; color:#fff !important;
+            border:none; font-weight:bold;
+        }
+        .taxi-accept-btn:hover { background:#c0392b !important; }
         #driver-taxi-toggle { touch-action: none; }
-        #driver-taxi-requests-list { max-height: 320px; overflow-y: auto; }
+        #driver-taxi-requests-list { flex:1; overflow-y: auto; }
         /* ===== نهاية CSS التاكسي ===== */
     </style>
 </head>
@@ -1286,6 +1297,27 @@
                 <span style="font-size:11px; color:#fff;">لا يوجد رخصة حالياً</span>
             </div>
         </div>
+        <!-- حقول رقم اللوحة واللون -->
+        <div style="width:100%; margin-bottom:12px;">
+            <p style="font-size:11px; color:#ccc; margin-bottom:6px; text-align:right;">معلومات السيارة (للتاكسي)</p>
+            <input type="text" id="reg-plate" placeholder="رقم اللوحة — مثال: أ ب ج 1234"
+                style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(212,175,55,0.3);
+                       background:rgba(255,255,255,0.05); color:#fff; font-size:12px; font-family:inherit;
+                       outline:none; margin-bottom:8px;">
+            <div style="display:flex; gap:8px; align-items:center;">
+                <label style="font-size:11px; color:#aaa; flex-shrink:0;">لون السيارة:</label>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <div onclick="selectCarColor('أبيض','#fff',this)"    style="width:26px;height:26px;border-radius:50%;background:#fff;border:2px solid #555;cursor:pointer;"></div>
+                    <div onclick="selectCarColor('أسود','#111',this)"    style="width:26px;height:26px;border-radius:50%;background:#111;border:2px solid #555;cursor:pointer;"></div>
+                    <div onclick="selectCarColor('رمادي','#888',this)"   style="width:26px;height:26px;border-radius:50%;background:#888;border:2px solid #555;cursor:pointer;"></div>
+                    <div onclick="selectCarColor('أحمر','#e74c3c',this)" style="width:26px;height:26px;border-radius:50%;background:#e74c3c;border:2px solid #555;cursor:pointer;"></div>
+                    <div onclick="selectCarColor('أزرق','#3498db',this)" style="width:26px;height:26px;border-radius:50%;background:#3498db;border:2px solid #555;cursor:pointer;"></div>
+                    <div onclick="selectCarColor('فضي','#c0c0c0',this)"  style="width:26px;height:26px;border-radius:50%;background:#c0c0c0;border:2px solid #555;cursor:pointer;"></div>
+                    <div onclick="selectCarColor('بيج','#f5deb3',this)"  style="width:26px;height:26px;border-radius:50%;background:#f5deb3;border:2px solid #555;cursor:pointer;"></div>
+                </div>
+                <span id="reg-car-color-label" style="font-size:10px; color:var(--gold); margin-right:4px;">غير محدد</span>
+            </div>
+        </div>
         <button class="btn-gold" onclick="regGoToStep(5)"><i class="fas fa-arrow-left"></i> التالي</button>
         <button class="btn-gold" style="background:transparent; color:#888; border:1px solid #333; margin-top:6px; font-size:9px;" onclick="regGoToStep(3)"><i class="fas fa-arrow-right"></i> رجوع</button>
     </div>
@@ -1775,42 +1807,116 @@
     <!-- ===== نهاية صفحة التمويل المستقلة ===== -->
 
     <!-- ===== [TAXI-SYSTEM] صفحة التاكسي للمندوب ===== -->
-    <div id="p-taxi-driver" class="page">
-        <div style="display:flex; align-items:center; gap:6px; margin-bottom:10px;">
-            <i class="fas fa-arrow-right" onclick="nav('p-main')" style="color:var(--gold); font-size:14px;"></i>
-            <h3 style="margin:0; font-size:14px; color:var(--gold);">🚖 طلبات التاكسي</h3>
+    <!-- ===== [TAXI-RED] صفحة التاكسي للمندوب ===== -->
+    <div id="p-taxi-driver" class="page"
+         style="background:linear-gradient(160deg,#1a0505 0%,#0f0303 100%); padding:12px; padding-bottom:80px;">
+
+        <!-- زر اختبار مؤقت -->
+        <button onclick="testTaxiDB()" style="width:100%;background:#333;color:#fff;border:1px solid #666;padding:8px;border-radius:8px;font-family:inherit;font-size:11px;margin-bottom:8px;cursor:pointer;">
+            🔧 اختبار قاعدة التاكسي
+        </button>
+
+        <!-- هيدر أحمر -->
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;
+                    background:rgba(231,76,60,0.1); border:1px solid rgba(231,76,60,0.3);
+                    border-radius:12px; padding:10px 12px;">
+            <i class="fas fa-arrow-right" onclick="nav('p-main')"
+               style="color:#ff6b6b; font-size:14px; cursor:pointer;"></i>
+            <span style="font-size:18px;">🚖</span>
+            <h3 style="margin:0; font-size:14px; color:#ff6b6b; font-weight:bold;">طلبات التاكسي</h3>
+            <div style="margin-right:auto; background:rgba(231,76,60,0.15); border:1px solid rgba(231,76,60,0.3);
+                        border-radius:8px; padding:3px 8px;">
+                <span style="font-size:9px; color:#ff6b6b;">🔴 نظام مستقل</span>
+            </div>
         </div>
 
-        <!-- حالة التوفر -->
-        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(212,175,55,0.06); border:1px solid rgba(212,175,55,0.2); border-radius:12px; padding:10px 12px; margin-bottom:10px;">
-            <span style="font-size:11px; color:#ccc;">حالتي في التاكسي:</span>
-            <div style="display:flex; align-items:center; gap:8px;">
-                <span id="driver-taxi-status-label" style="font-size:10px; color:#888;">غير متاح</span>
-                <div id="driver-taxi-toggle" onclick="toggleDriverTaxiAvailability()" style="width:38px; height:20px; background:#333; border-radius:10px; cursor:pointer; position:relative; transition:0.3s;">
-                    <div id="driver-taxi-toggle-knob" style="position:absolute; top:2px; right:2px; width:16px; height:16px; background:#888; border-radius:50%; transition:0.3s;"></div>
+        <!-- مفتاح التوفر -->
+        <div style="display:flex; justify-content:space-between; align-items:center;
+                    background:rgba(231,76,60,0.06); border:1px solid rgba(231,76,60,0.25);
+                    border-radius:12px; padding:10px 14px; margin-bottom:12px;">
+            <div>
+                <div style="font-size:11px; color:#ccc; font-weight:bold;">حالتي للتاكسي</div>
+                <div id="driver-taxi-status-label" style="font-size:10px; color:#888; margin-top:2px;">غير متاح</div>
+            </div>
+            <div id="driver-taxi-toggle" onclick="toggleDriverTaxiAvailability()"
+                 style="width:44px; height:24px; background:#333; border-radius:12px;
+                        cursor:pointer; position:relative; transition:0.3s; border:1px solid #555;">
+                <div id="driver-taxi-toggle-knob"
+                     style="position:absolute; top:3px; right:3px; width:18px; height:18px;
+                            background:#888; border-radius:50%; transition:0.3s;"></div>
+            </div>
+        </div>
+
+        <!-- الرحلة النشطة — تظهر عند قبول طلب -->
+        <div id="driver-active-taxi-card"
+             style="display:none; background:rgba(231,76,60,0.08); border:2px solid #e74c3c;
+                    border-radius:16px; padding:14px; margin-bottom:12px;
+                    box-shadow:0 4px 20px rgba(231,76,60,0.2);">
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:10px;">
+                <span style="font-size:16px;">🚖</span>
+                <span style="font-size:12px; color:#ff6b6b; font-weight:bold;">رحلة نشطة</span>
+                <div style="margin-right:auto; width:10px; height:10px; background:#e74c3c;
+                            border-radius:50%; animation:pulse 1.5s infinite;"></div>
+            </div>
+            <div id="driver-active-taxi-info" style="font-size:10px; color:#ccc; line-height:2.0; margin-bottom:10px;"></div>
+
+            <!-- كود OTP يعرضه المندوب للعميل -->
+            <div id="driver-otp-display" style="display:none; background:rgba(0,0,0,0.4);
+                 border:1.5px dashed #e74c3c; border-radius:12px; padding:10px; margin-bottom:10px; text-align:center;">
+                <div style="color:#aaa; font-size:10px; margin-bottom:4px;">🔑 الكود للعميل لإنهاء الرحلة:</div>
+                <div id="driver-otp-code" style="color:#ff6b6b; font-size:28px; font-weight:bold;
+                     letter-spacing:8px; font-family:monospace;">----</div>
+            </div>
+
+            <!-- أزرار التحكم الكاملة -->
+            <div style="display:flex;flex-direction:column;gap:8px;">
+
+                <!-- زر Google Maps للوصول للعميل -->
+                <button id="btn-navigate-pickup" onclick="_openGoogleMapsPickup()"
+                        style="background:rgba(66,133,244,0.15);color:#4285f4;border:1px solid rgba(66,133,244,0.5);
+                               padding:11px;border-radius:10px;font-size:12px;font-weight:bold;cursor:pointer;
+                               font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;">
+                    <span>🗺️</span> التوجه إلى نقطة الانطلاق
+                </button>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                    <button onclick="updateTaxiRideStatus('on_the_way')"
+                            style="background:rgba(243,156,18,0.15);color:#f39c12;border:1px solid #f39c12;
+                                   padding:10px;border-radius:10px;font-size:11px;cursor:pointer;
+                                   font-family:inherit;font-weight:bold;">🚖 في الطريق</button>
+                    <button onclick="updateTaxiRideStatus('started')"
+                            style="background:rgba(46,204,113,0.15);color:#2ecc71;border:1px solid #2ecc71;
+                                   padding:10px;border-radius:10px;font-size:11px;cursor:pointer;
+                                   font-family:inherit;font-weight:bold;">🚀 بدء الرحلة</button>
                 </div>
+
+                <!-- كود التحقق عند الانتهاء -->
+                <button onclick="_showDriverOTP()"
+                        style="background:rgba(231,76,60,0.15);color:#ff6b6b;border:1.5px solid #e74c3c;
+                               padding:11px;border-radius:10px;font-size:12px;cursor:pointer;
+                               font-family:inherit;font-weight:bold;">
+                    🔑 إعطاء كود الإنهاء للعميل
+                </button>
             </div>
         </div>
 
-        <!-- قائمة طلبات التاكسي المتاحة -->
-        <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(212,175,55,0.15); border-radius:12px; padding:12px; margin-bottom:10px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <span style="font-size:11px; color:var(--gold); font-weight:bold;">🔔 طلبات متاحة</span>
-                <button onclick="loadDriverTaxiRequests()" style="font-size:9px; padding:4px 10px; border-radius:8px; border:1px solid var(--gold); background:transparent; color:var(--gold); cursor:pointer; font-family:inherit;">🔄</button>
+        <!-- قائمة الطلبات المتاحة — تملأ الصفحة -->
+        <div style="flex:1; display:flex; flex-direction:column; min-height:0;">
+            <div style="display:flex; justify-content:space-between; align-items:center;
+                        margin-bottom:10px; flex-shrink:0;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span style="font-size:14px;">🔔</span>
+                    <span style="font-size:12px; color:#ff6b6b; font-weight:bold;">طلبات متاحة</span>
+                </div>
+                <button onclick="loadDriverTaxiRequests()"
+                        style="font-size:9px; padding:4px 12px; border-radius:8px;
+                               border:1px solid #e74c3c; background:rgba(231,76,60,0.1);
+                               color:#ff6b6b; cursor:pointer; font-family:inherit;">🔄 تحديث</button>
             </div>
-            <div id="driver-taxi-requests-list">
-                <div style="text-align:center; color:#555; font-size:11px; padding:16px;">لا توجد طلبات تاكسي حالياً</div>
-            </div>
-        </div>
-
-        <!-- الرحلة النشطة -->
-        <div id="driver-active-taxi-card" style="display:none; background:rgba(212,175,55,0.06); border:1px solid var(--gold); border-radius:12px; padding:12px; margin-bottom:10px;">
-            <div style="font-size:11px; color:var(--gold); font-weight:bold; margin-bottom:8px;">🚖 الرحلة الحالية</div>
-            <div id="driver-active-taxi-info" style="font-size:10px; color:#ccc; line-height:1.8;"></div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px;">
-                <button onclick="updateTaxiRideStatus('on_the_way')" style="background:#f39c12; color:#000; border:none; padding:8px; border-radius:8px; font-size:10px; cursor:pointer; font-family:inherit; font-weight:bold;">🚖 في الطريق</button>
-                <button onclick="updateTaxiRideStatus('started')" style="background:#2ecc71; color:#000; border:none; padding:8px; border-radius:8px; font-size:10px; cursor:pointer; font-family:inherit; font-weight:bold;">🚀 بدء الرحلة</button>
-                <button onclick="updateTaxiRideStatus('completed')" style="background:var(--gold); color:#000; border:none; padding:8px; border-radius:8px; font-size:10px; cursor:pointer; font-family:inherit; font-weight:bold; grid-column:1/-1;">✅ إنهاء الرحلة</button>
+            <div id="driver-taxi-requests-list" style="flex:1; overflow-y:auto;">
+                <div style="text-align:center; color:#555; font-size:11px; padding:20px;">
+                    🚖 لا توجد طلبات تاكسي حالياً
+                </div>
             </div>
         </div>
     </div>
@@ -1824,8 +1930,12 @@
         <div class="tab-item" id="t-wallet" onclick="nav('p-wallet')"><i class="fas fa-wallet"></i>المحفظة</div>
         <div class="tab-item" id="t-financing" onclick="nav('p-financing')" style="display:none; position:relative;"><i class="fas fa-hand-holding-usd"></i>تمويلك<div id="financing-icon-dot"></div></div>
         <div class="tab-item" id="t-tamweel" onclick="navTamweel()" style="position:relative; display:none;"><i class="fas fa-coins"></i>التمويل<div id="tamweel-notif-dot" style="position:absolute; top:4px; right:10px; width:7px; height:7px; background:#e74c3c; border-radius:50%; display:none; animation:pulse 2s infinite;"></div></div>
-        <!-- [TAXI-SYSTEM] تبويب التاكسي للمندوب — يظهر حسب نوع عمله -->
-        <div class="tab-item" id="t-taxi-driver" onclick="nav('p-taxi-driver')" style="display:none;"><i class="fas fa-car"></i>تاكسي</div>
+        <!-- [TAXI-RED] تبويب التاكسي للمندوب -->
+        <div class="tab-item" id="t-taxi-driver" onclick="nav('p-taxi-driver'); setTimeout(loadDriverTaxiRequests,200);"
+             style="display:none; color:#e74c3c !important;">
+            <i class="fas fa-car" style="color:#e74c3c;"></i>
+            <span style="color:#e74c3c; font-size:9px;">🔴 تاكسي</span>
+        </div>
         <div class="tab-item" id="t-profile" onclick="nav('p-profile')"><i class="fas fa-user-tie"></i>حسابي</div>
     </div>
 </div>
@@ -1870,6 +1980,52 @@
             detectSessionInUrl: false
         }
     });
+
+    // ================================================================
+    // [TAXI-DB] قاعدة بيانات التاكسي المستقلة
+    // ================================================================
+    const TAXI_DB_URL = "https://bcicdkaokjpmkbfvqhug.supabase.co";
+    const TAXI_DB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjaWNka2Fva2pwbWtiZnZxaHVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NTg1NTAsImV4cCI6MjA5NjIzNDU1MH0.gIVJpWJ7VtRI31RvRknFYmGjoYaUh9P6sKNye4C67y0";
+    const taxiDB = supabase.createClient(TAXI_DB_URL, TAXI_DB_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+    });
+    // ================================================================
+
+    // ================================================================
+    // [REALTIME-MANAGER] مدير Realtime موحد للمندوب
+    // ================================================================
+    var _DRV_RT = {
+        channels: {},
+        subscribe: function(name, table, filter, event, cb) {
+            if (this.channels[name]) {
+                try { supabaseClient.removeChannel(this.channels[name]); } catch(e) {}
+                delete this.channels[name];
+            }
+            var self = this;
+            var cfg = { event: event || '*', schema: 'public', table: table };
+            if (filter) cfg.filter = filter;
+            var ch = supabaseClient.channel(name)
+                .on('postgres_changes', cfg, cb)
+                .subscribe(function(status) {
+                    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                        setTimeout(function() {
+                            if (self.channels[name]) {
+                                self.subscribe(name, table, filter, event, cb);
+                            }
+                        }, 4000);
+                    }
+                });
+            this.channels[name] = ch;
+            return ch;
+        },
+        unsubscribe: function(name) {
+            if (this.channels[name]) {
+                try { supabaseClient.removeChannel(this.channels[name]); } catch(e) {}
+                delete this.channels[name];
+            }
+        }
+    };
+    // ================================================================
     // [SEC-FIX-D1] تم إزالة console.log الذي يكشف نوع مفتاح API في الإنتاج
     // ===== مفتاح Google Maps (اختياري - يُحسّن ETA والمسارات) =====
     // ضع مفتاح Google Maps API هنا للحصول على ETA دقيق مع حركة المرور
@@ -2081,14 +2237,14 @@
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sh_public_orders' }, payload => {
                     if(payload.new.is_consultation === true) return;
                     // [TAXI] فلتر حسب نوع المندوب
-                    const _rt_role = (currentUserData && currentUserData.driver_role) || 'delivery';
-                    const _rt_type = payload.new.order_type || '';
-                    if (_rt_role === 'delivery' && _rt_type === 'taxi_ride') return;
-                    if (_rt_role === 'taxi'     && _rt_type !== 'taxi_ride') return;
+                    // [TAXI-ISOLATED] مناديب التوصيل فقط يستقبلون إشعارات sh_public_orders
+                    const _rt_role = (currentUserData && (currentUserData.driver_role || currentUserData.work_type)) || 'delivery';
+                    if (_rt_role === 'taxi') return;
+                    const _rt_type = payload.new.order_type || 'delivery';
+                    if (_rt_type === 'taxi_ride') return;
+                    if (payload.new.res_type === 'taxi') return;
                     if(payload.new.status === 'searching' || payload.new.status === 'pending') {
-                        const _notifIcon = _rt_type === 'taxi_ride' ? '🚖' : '🦅';
-                        siteNotify(_notifIcon + " صيد جديد! " + (payload.new.restaurant_name || payload.new.res || payload.new.res_name || 'طلب جديد'));
-                        // رفرفة سريعة عند وصول طلب جديد
+                        siteNotify('🦅 صيد جديد! ' + (payload.new.restaurant_name || payload.new.res || payload.new.res_name || 'طلب جديد'));
                         var flapEl = document.getElementById('shahen-flap-icon');
                         if (flapEl) { flapEl.classList.add('shahen-flap-fast'); setTimeout(function(){ flapEl.classList.remove('shahen-flap-fast'); }, 2000); }
                         refreshOrders();
@@ -2380,7 +2536,13 @@
             }
         } catch (_mdCheckErr) { /* تجاهل خطأ الفحص والمتابعة */ }
         // [END-MULTI-DEVICE-BLOCK]
-        currentUserData = { ...driver, id: driver.id };
+        // تعيين driver_role افتراضياً إذا لم يكن في البيانات
+        var _driverRoleVal = driver.driver_role || driver.work_type || '';
+        // الأنواع المعروفة فقط، وإلا يبقى فارغاً حتى يُحمَّل من DB
+        if (!['delivery','taxi','both'].includes(_driverRoleVal)) {
+            _driverRoleVal = 'delivery';
+        }
+        currentUserData = { ...driver, id: driver.id, driver_role: _driverRoleVal };
         // [REMEMBER-ME] حفظ البيانات حسب خيار "تذكرني"
         const _rememberMeChecked = document.getElementById('remember-me-checkbox') && document.getElementById('remember-me-checkbox').checked;
         localStorage.setItem('shaheen_driver', JSON.stringify(currentUserData));
@@ -2416,6 +2578,15 @@
         }, 2000);
         if (parseFloat(driver.wallet_balance) <= 0) setTimeout(() => showBalanceEmptyModal(), 2000);
         initSystem();
+
+        // ── إظهار تبويب التاكسي فوراً بناءً على driver_role ──
+        var _loginRole = currentUserData.driver_role || currentUserData.work_type || 'delivery';
+        var _taxiTabEl = document.getElementById('t-taxi-driver');
+        if (_taxiTabEl && (_loginRole === 'taxi' || _loginRole === 'both')) {
+            _taxiTabEl.style.display = 'flex';
+        }
+        // تحديث من DB بعد ثانية
+        setTimeout(function() { _checkDriverTaxiTabVisibility(); }, 1000);
     }
 
     async function initSystem() {
@@ -3587,15 +3758,32 @@
         const { data, error } = await supabaseClient.from('sh_public_orders').select('*').in('status', ['searching', 'pending']).order('created_at', { ascending: false });
 
         // ── [TAXI] فلترة الطلبات حسب نوع المندوب ──
-        const _driverRole = (currentUserData && currentUserData.driver_role) || 'delivery';
+        // [TAXI-ISOLATED] مناديب التوصيل يرون فقط طلبات sh_public_orders العادية
+        // سائقو التاكسي يرون فقط taxi_rides — لا يصلهم شيء من هنا
+        // جلب driver_role من currentUserData أو من DB مباشرة
+        const _driverRole = (currentUserData && (currentUserData.driver_role || currentUserData.work_type)) || 'delivery';
+
+        if (_driverRole === 'taxi') {
+            list.innerHTML = '';
+            var _txDiv = document.createElement('div');
+            _txDiv.style.cssText = 'text-align:center;margin-top:40px;padding:20px;';
+            _txDiv.innerHTML = '<span style="font-size:40px;display:block;margin-bottom:10px;">🚖</span>' +
+                '<div style="color:#ff6b6b;font-size:13px;font-weight:bold;margin-bottom:8px;">أنت سائق تاكسي</div>' +
+                '<div style="color:#888;font-size:11px;margin-bottom:16px;">طلبات التاكسي في التبويب المخصص</div>';
+            var _txBtn = document.createElement('button');
+            _txBtn.style.cssText = 'background:#e74c3c;color:#fff;border:none;padding:12px 24px;border-radius:12px;font-size:13px;font-weight:bold;cursor:pointer;font-family:inherit;';
+            _txBtn.innerText = '🚖 اذهب لطلبات التاكسي';
+            _txBtn.addEventListener('click', function() { nav('p-taxi-driver'); setTimeout(loadDriverTaxiRequests, 200); });
+            _txDiv.appendChild(_txBtn);
+            list.appendChild(_txDiv);
+            _refreshOrdersLock = false; return;
+        }
+
+        // فلترة صارمة — حذف أي طلب تاكسي من قائمة التوصيل
         const filteredData = data ? data.filter(o => {
-            // حذف الاستشارات دائماً
             if (o.is_consultation === true) return false;
-            // إذا المندوب delivery فقط — لا يرى طلبات taxi_ride
-            if (_driverRole === 'delivery' && o.order_type === 'taxi_ride') return false;
-            // إذا المندوب taxi فقط — يرى فقط طلبات taxi_ride
-            if (_driverRole === 'taxi' && o.order_type !== 'taxi_ride') return false;
-            // إذا both — يرى كل شيء
+            if (o.order_type === 'taxi_ride') return false;
+            if (o.res_type === 'taxi') return false;
             return true;
         }) : [];
         list.innerHTML = "";
@@ -5827,7 +6015,7 @@
     // ===== نهاية دوال نظام التمويل =====
 
     // ===== متغيرات ودوال تسجيل المندوب الجديد =====
-    let regData = { name: '', phone: '', email: '', vehicle: '', license: '', governorate: '', age: '', workType: '', driverRole: 'delivery', termsAgreed: false };
+    let regData = { name: '', phone: '', email: '', vehicle: '', license: '', governorate: '', age: '', workType: '', driverRole: 'delivery', carPlate: '', carColor: '', carColorHex: '', termsAgreed: false };
 
     // ── اختيار نوع المندوب ──
     function selectDriverRole(role) {
@@ -5880,6 +6068,8 @@
         if (step === 5) {
             if (!regData.vehicle) { siteNotify("يرجى اختيار نوع المركبة أولاً"); return; }
             if (!regData.license) { siteNotify("يرجى اختيار نوع الرخصة أولاً"); return; }
+            var plateEl = document.getElementById('reg-plate');
+            if (plateEl) regData.carPlate = plateEl.value.trim();
         }
         if (step === 6) {
             if (!regData.workType) { siteNotify("يرجى اختيار نوع العمل أولاً ⚠️"); return; }
@@ -5895,6 +6085,20 @@
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         const targetPage = document.getElementById(stepPageMap[step]);
         if (targetPage) targetPage.classList.add('active');
+    }
+
+    function selectCarColor(colorName, colorHex, el) {
+        regData.carColor    = colorName;
+        regData.carColorHex = colorHex;
+        // تحديث UI
+        document.querySelectorAll('#p-register-4 [onclick^="selectCarColor"]').forEach(function(d) {
+            d.style.border = '2px solid #555';
+            d.style.transform = 'scale(1)';
+        });
+        el.style.border = '3px solid var(--gold)';
+        el.style.transform = 'scale(1.2)';
+        var lbl = document.getElementById('reg-car-color-label');
+        if (lbl) { lbl.innerText = colorName; lbl.style.color = colorHex === '#fff' ? '#ccc' : colorHex; }
     }
 
     function selectWorkType(type, el) {
@@ -6000,6 +6204,9 @@
                 work_type:            regData.workType   || 'freelance',
                 driver_role:          regData.driverRole || 'delivery',
                 taxi_available:       (regData.driverRole === 'taxi' || regData.driverRole === 'both'),
+                car_plate:            regData.carPlate   || '',
+                car_color:            regData.carColor   || '',
+                car_color_hex:        regData.carColorHex|| '',
                 doc_national_id:      idUrl              || null,
                 doc_driving_license:  licenseUrl         || null,
                 doc_selfie:           selfieUrl          || null
@@ -7240,6 +7447,8 @@
     async function toggleDriverTaxiAvailability() {
         _driverTaxiAvailable = !_driverTaxiAvailable;
         localStorage.setItem('driver_taxi_available', _driverTaxiAvailable ? '1' : '0');
+        // إعادة تشغيل الـ listener عند أي تغيير
+        _DRIVER_TAXI_startNewOrdersListener();
         _updateDriverTaxiToggleUI();
 
         if (currentUserData && currentUserData.id) {
@@ -7258,6 +7467,83 @@
     }
 
     // ── جلب طلبات التاكسي المتاحة ──
+    // ════════════════════════════════════════════════
+    // [TAXI] تحويل الإحداثيات لأسماء أحياء حماه
+    // ════════════════════════════════════════════════
+    var _HAMA_ZONES = [
+        { name:'حي القصور',        lat:35.134, lng:36.757, r:0.008 },
+        { name:'حي البارودية',      lat:35.140, lng:36.758, r:0.008 },
+        { name:'حي الشرقية',        lat:35.134, lng:36.760, r:0.007 },
+        { name:'حي الحاضر',         lat:35.140, lng:36.758, r:0.008 },
+        { name:'كازو',              lat:35.137, lng:36.758, r:0.007 },
+        { name:'حي الأميرية',       lat:35.136, lng:36.758, r:0.007 },
+        { name:'حي البعث',          lat:35.136, lng:36.757, r:0.006 },
+        { name:'حي الجراجمة',       lat:35.138, lng:36.756, r:0.006 },
+        { name:'حي التعاونية',      lat:35.139, lng:36.759, r:0.007 },
+        { name:'حي البرازية',       lat:35.140, lng:36.759, r:0.007 },
+        { name:'حي الصابونية',      lat:35.133, lng:36.755, r:0.006 },
+        { name:'حي الشريعة',        lat:35.135, lng:36.756, r:0.006 },
+        { name:'حي الفراية',        lat:35.141, lng:36.760, r:0.007 },
+        { name:'حي البرناوي',       lat:35.142, lng:36.761, r:0.007 },
+        { name:'حي أبو الفداء',     lat:35.130, lng:36.750, r:0.007 },
+        { name:'حي باب قبلي',       lat:35.128, lng:36.749, r:0.007 },
+        { name:'حي المرابط',        lat:35.131, lng:36.752, r:0.006 },
+        { name:'حي الأربعين',       lat:35.137, lng:36.757, r:0.006 },
+        { name:'حي كيلانية',        lat:35.136, lng:36.756, r:0.005 },
+        { name:'حي الحمراء',        lat:35.138, lng:36.752, r:0.007 },
+        { name:'ساحة العاصي',       lat:35.132, lng:36.758, r:0.005 },
+        { name:'النواعير',          lat:35.132, lng:36.758, r:0.008 },
+        { name:'محافظة حماه',       lat:35.132, lng:36.758, r:0.006 },
+        { name:'كراج العلبي',       lat:35.120, lng:36.740, r:0.008 },
+        { name:'كراج الشمال',       lat:35.142, lng:36.761, r:0.008 },
+        { name:'المشفى الوطني',     lat:35.132, lng:36.751, r:0.006 },
+        { name:'مشفى الباسل',       lat:35.128, lng:36.748, r:0.006 },
+        { name:'الملعب البلدي',     lat:35.129, lng:36.747, r:0.006 },
+        { name:'شارع صلاح الدين',   lat:35.132, lng:36.757, r:0.005 },
+        { name:'طريق حلب',          lat:35.150, lng:36.770, r:0.015 },
+        { name:'طريق حمص',          lat:35.110, lng:36.730, r:0.015 },
+        { name:'حي العليلية',       lat:35.145, lng:36.760, r:0.009 },
+        { name:'قلعة حماه',         lat:35.135, lng:36.759, r:0.005 },
+    ];
+
+    function _coordsToName(lat, lng) {
+        if (!lat || !lng) return null;
+        var best = null, bestDist = 999;
+        for (var i = 0; i < _HAMA_ZONES.length; i++) {
+            var z = _HAMA_ZONES[i];
+            var d = Math.sqrt(Math.pow(lat - z.lat, 2) + Math.pow(lng - z.lng, 2));
+            if (d < z.r && d < bestDist) {
+                bestDist = d;
+                best = z.name;
+            }
+        }
+        // إذا لم يوجد حي قريب — استخدام reverse geocoding من Nominatim
+        if (!best) {
+            // fallback بسيط: قرّب الإحداثيات
+            best = lat.toFixed(3) + ', ' + lng.toFixed(3);
+        }
+        return best;
+    }
+
+    // reverse geocoding غير متزامن من Nominatim (OpenStreetMap)
+    async function _reverseGeocode(lat, lng) {
+        try {
+            var r = await fetch(
+                'https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lng +
+                '&format=json&accept-language=ar&zoom=16',
+                { headers: { 'User-Agent': 'ShahenTaxi/1.0' } }
+            );
+            var data = await r.json();
+            var addr = data.address || {};
+            return addr.suburb || addr.neighbourhood || addr.quarter ||
+                   addr.city_district || addr.road || addr.village ||
+                   addr.town || addr.city || _coordsToName(lat, lng);
+        } catch(e) {
+            return _coordsToName(lat, lng);
+        }
+    }
+
+    // ── [TAXI-ISOLATED] جلب طلبات التاكسي من taxi_rides فقط ──
     async function loadDriverTaxiRequests() {
         var listDiv = document.getElementById('driver-taxi-requests-list');
         if (!listDiv) return;
@@ -7267,109 +7553,188 @@
             return;
         }
 
-        try {
-            // نقرأ من sh_public_orders (order_type='taxi_ride') — هذا ما يُنشئه العميل
-            var { data: requests, error } = await supabaseClient
-                .from('sh_public_orders')
-                .select('*')
-                .eq('status', 'searching')
-                .eq('order_type', 'taxi_ride')
-                .order('created_at', { ascending: false })
-                .limit(10);
+        listDiv.innerHTML = '<div style="text-align:center; color:#888; font-size:10px; padding:10px;">⏳</div>';
 
-            if (error || !requests || requests.length === 0) {
-                listDiv.innerHTML = '<div style="text-align:center; color:#555; font-size:11px; padding:16px;">لا توجد طلبات تاكسي حالياً</div>';
+        try {
+            var { data: rides, error } = await taxiDB
+                .from('taxi_rides')
+                .select('id,customer_name,customer_phone,pickup_lat,pickup_lng,dropoff_lat,dropoff_lng,distance_km,estimated_price,car_type,status,created_at')
+                .eq('status', 'searching')
+                .order('created_at', { ascending: false })
+                .limit(15);
+
+            if (error) throw error;
+
+            if (!rides || rides.length === 0) {
+                listDiv.innerHTML = '<div style="text-align:center; color:#555; font-size:11px; padding:20px;">🚖 لا توجد طلبات تاكسي حالياً</div>';
                 return;
             }
 
             listDiv.innerHTML = '';
-            requests.forEach(function(r) {
-                // استخراج إحداثيات من restaurant_note
-                var note  = r.restaurant_note || '';
-                var price = r.total ? parseFloat(r.total).toLocaleString() + ' ل.س' : '--';
-                var items = [];
-                try { items = JSON.parse(r.items || '[]'); } catch(e) {}
-                var distText = items.length > 0 ? items[0].n : note;
+            var carLabels = { economy:'🚗 اقتصادي', comfort:'🚙 مريح', van:'🚐 فان' };
 
-                var div = document.createElement('div');
-                div.style.cssText = 'border:1px solid rgba(212,175,55,0.3); border-radius:12px; padding:12px; margin-bottom:8px; background:rgba(212,175,55,0.04);';
-                div.innerHTML =
-                    '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">' +
-                        '<div style="font-size:12px; color:#fff; font-weight:bold;">🚖 ' + (r.customer_name || '--') + '</div>' +
-                        '<div style="font-size:10px; color:var(--gold); font-weight:bold;">' + price + '</div>' +
-                    '</div>' +
-                    '<div style="font-size:10px; color:#aaa; margin-bottom:8px; line-height:1.7;">' +
-                        '📞 ' + (r.phone || '--') + '<br>' +
-                        '📍 ' + note.replace(/\|/g,'<br>🔹 ') +
-                    '</div>' +
-                    '<div style="display:flex; gap:8px;">' +
-                        '<button style="flex:1; background:var(--gold); color:#000; border:none; padding:9px; border-radius:9px; font-size:11px; font-weight:bold; cursor:pointer; font-family:inherit;" ' +
-                            'onclick="acceptTaxiRide('' + r.id + '')">✅ قبول الرحلة</button>' +
-                        '<button style="flex:0.35; background:rgba(231,76,60,0.12); color:#e74c3c; border:1px solid #e74c3c; padding:9px; border-radius:9px; font-size:11px; cursor:pointer; font-family:inherit;" ' +
-                            'onclick="rejectTaxiRide('' + r.id + '')">❌</button>' +
-                    '</div>';
-                listDiv.appendChild(div);
-            });
+            // بناء الكاردات باستخدام geocoding
+            var buildCards = async function() {
+                for (var i = 0; i < rides.length; i++) {
+                    var r = rides[i];
+                    var dist  = r.distance_km      ? parseFloat(r.distance_km).toFixed(1) + ' كم' : '--';
+                    var price = r.estimated_price  ? Math.round(r.estimated_price).toLocaleString() + ' ل.س' : '--';
+                    var carLbl= carLabels[r.car_type] || '🚗 اقتصادي';
+                    var diffSec = r.created_at ? Math.floor((Date.now() - new Date(r.created_at)) / 1000) : 0;
+                    var timeAgo = diffSec < 60 ? diffSec + 'ث' : (Math.floor(diffSec/60) + ' دق');
+
+                    // تحويل الإحداثيات لأسماء
+                    var fromName = _coordsToName(r.pickup_lat,  r.pickup_lng)  || '...';
+                    var toName   = _coordsToName(r.dropoff_lat, r.dropoff_lng) || '...';
+
+                    var div = document.createElement('div');
+                    div.style.cssText = 'border-radius:14px; padding:14px; margin-bottom:10px; border:1.5px solid rgba(231,76,60,0.4); background:rgba(231,76,60,0.06);';
+
+                    // هيدر: اسم العميل + وقت + سعر
+                    var header = document.createElement('div');
+                    header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;';
+                    header.innerHTML =
+                        '<div style="display:flex;align-items:center;gap:6px;">' +
+                            '<span style="font-size:18px;">🚖</span>' +
+                            '<span style="font-size:13px;color:#ff6b6b;font-weight:bold;">' + (r.customer_name || 'عميل') + '</span>' +
+                        '</div>' +
+                        '<div style="text-align:left;">' +
+                            '<div style="font-size:14px;color:#2ecc71;font-weight:bold;">' + price + '</div>' +
+                            '<div style="font-size:9px;color:#666;">' + timeAgo + '</div>' +
+                        '</div>';
+                    div.appendChild(header);
+
+                    // معلومات الرحلة
+                    var info = document.createElement('div');
+                    info.style.cssText = 'background:rgba(0,0,0,0.3);border-radius:10px;padding:10px;margin-bottom:10px;';
+                    info.innerHTML =
+                        '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);">' +
+                            '<span style="font-size:14px;">📍</span>' +
+                            '<div><div style="font-size:9px;color:#888;">نقطة الانطلاق</div>' +
+                            '<div style="font-size:12px;color:#fff;font-weight:bold;" id="from_' + r.id + '">' + fromName + '</div></div>' +
+                        '</div>' +
+                        '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);">' +
+                            '<span style="font-size:14px;">🏁</span>' +
+                            '<div><div style="font-size:9px;color:#888;">الوجهة</div>' +
+                            '<div style="font-size:12px;color:#fff;font-weight:bold;" id="to_' + r.id + '">' + toName + '</div></div>' +
+                        '</div>' +
+                        '<div style="display:flex;gap:16px;padding-top:6px;">' +
+                            '<div><span style="font-size:9px;color:#888;">المسافة </span><span style="font-size:12px;color:#d4af37;font-weight:bold;">' + dist + '</span></div>' +
+                            '<div><span style="font-size:9px;color:#888;">النوع </span><span style="font-size:12px;color:#d4af37;font-weight:bold;">' + carLbl + '</span></div>' +
+                            '<div><span style="font-size:9px;color:#888;">📞 </span><span style="font-size:11px;color:#aaa;">' + (r.customer_phone||'--') + '</span></div>' +
+                        '</div>';
+                    div.appendChild(info);
+
+                    // أزرار
+                    var btnRow = document.createElement('div');
+                    btnRow.style.cssText = 'display:flex;gap:8px;';
+                    var accBtn = document.createElement('button');
+                    accBtn.style.cssText = 'flex:1;background:#e74c3c;color:#fff;border:none;padding:11px;border-radius:10px;font-size:13px;font-weight:bold;cursor:pointer;font-family:inherit;';
+                    accBtn.innerHTML = '✅ قبول الرحلة';
+                    (function(rid){ accBtn.addEventListener('click', function(){ acceptTaxiRide(rid); }); })(r.id);
+                    var rejBtn = document.createElement('button');
+                    rejBtn.style.cssText = 'width:44px;background:transparent;color:#e74c3c;border:1px solid rgba(231,76,60,0.4);padding:11px;border-radius:10px;font-size:13px;cursor:pointer;font-family:inherit;';
+                    rejBtn.innerText = '✕';
+                    (function(rid){ rejBtn.addEventListener('click', function(){ rejectTaxiRide(rid); }); })(r.id);
+                    btnRow.appendChild(accBtn);
+                    btnRow.appendChild(rejBtn);
+                    div.appendChild(btnRow);
+                    listDiv.appendChild(div);
+
+                    // تحديث الأسماء بـ reverse geocoding بعد عرض الكارد
+                    (function(rideId, pLat, pLng, dLat, dLng) {
+                        _reverseGeocode(pLat, pLng).then(function(name) {
+                            var el = document.getElementById('from_' + rideId);
+                            if (el) el.innerText = name || '--';
+                        });
+                        _reverseGeocode(dLat, dLng).then(function(name) {
+                            var el = document.getElementById('to_' + rideId);
+                            if (el) el.innerText = name || '--';
+                        });
+                    })(r.id, r.pickup_lat, r.pickup_lng, r.dropoff_lat, r.dropoff_lng);
+                }
+            };
+            buildCards();
         } catch(e) {
-            listDiv.innerHTML = '<div style="text-align:center; color:#555; font-size:11px; padding:10px;">تعذّر التحميل</div>';
+            listDiv.innerHTML = '<div style="text-align:center; color:#e74c3c; font-size:11px; padding:10px;">' + (e.message || 'خطأ في التحميل') + '</div>';
         }
     }
 
-    // ── قبول رحلة تاكسي ──
-    async function acceptTaxiRide(rideId) {
-        if (!currentUserData) return;
+    // ── [TAXI-ISOLATED] قبول رحلة تاكسي — يُحدّث taxi_rides فقط ──
+    async function testTaxiDB() {
+        showNotification && showNotification('⏳ اختبار الاتصال...', 'success');
         try {
-            var driverName  = currentUserData.name  || currentUserData.full_name || '--';
-            var driverPhone = currentUserData.phone || '--';
-            var now         = new Date().toISOString();
+            // ١) اختبار SELECT
+            var r1 = await taxiDB.from('taxi_rides').select('id,status').limit(3);
+            if (r1.error) {
+                showNotification && showNotification('❌ SELECT فشل: ' + r1.error.message, 'error');
+                return;
+            }
+            showNotification && showNotification('✅ SELECT نجح — ' + (r1.data ? r1.data.length : 0) + ' طلب', 'success');
 
-            var updateFields = {
-                status:      'accepted',
-                driver_id:   currentUserData.id,
-                driver_name: driverName,
-                driver_phone: driverPhone,
-                accepted_at: now
+            // ٢) اختبار INSERT
+            var testId = 'test_' + Date.now();
+            var r2 = await taxiDB.from('taxi_rides').insert([{
+                id: testId.substring(0,8) + '-0000-0000-0000-000000000000',
+                customer_name: 'TEST',
+                status: 'searching'
+            }]);
+            if (r2.error) {
+                showNotification && showNotification('❌ INSERT فشل: ' + r2.error.message, 'error');
+                return;
+            }
+            showNotification && showNotification('✅ INSERT نجح — قاعدة البيانات تعمل!', 'success');
+        } catch(e) {
+            showNotification && showNotification('❌ استثناء: ' + e.message, 'error');
+        }
+    }
+
+    async function acceptTaxiRide(rideId) {
+        if (!currentUserData) {
+            showNotification && showNotification('يجب تسجيل الدخول أولاً', 'error');
+            return;
+        }
+
+        showNotification && showNotification('⏳ جاري القبول...', 'success');
+
+        try {
+            var updateData = {
+                status:       'accepted',
+                driver_name:  currentUserData.name  || currentUserData.full_name || '--',
+                driver_phone: currentUserData.phone || '--',
+                car_plate:    currentUserData.car_plate     || '',
+                car_color:    currentUserData.car_color     || '',
+                car_color_hex:currentUserData.car_color_hex || '',
+                vehicle:      currentUserData.vehicle       || '',
+                accepted_at:  new Date().toISOString()
             };
 
-            // ١) حاول تحديث sh_public_orders أولاً (atomic — أول من يقبل يفوز)
-            var { data: pubOrd, error: pubErr } = await supabaseClient
-                .from('sh_public_orders')
-                .update({ status: 'accepted', driver_id: currentUserData.id, driver_name: driverName, driver_phone: driverPhone })
+            var res = await taxiDB
+                .from('taxi_rides')
+                .update(updateData)
                 .eq('id', rideId)
-                .eq('status', 'searching')
-                .select()
-                .single();
+                .select('*');
 
-            if (pubErr || !pubOrd) {
-                showNotification && showNotification('تم قبول هذا الطلب من قبل سائق آخر ❌', 'error');
+            if (res.error) {
+                showNotification && showNotification('❌ ' + res.error.message, 'error');
+                return;
+            }
+
+            var taxiRow = res.data && res.data[0];
+            if (!taxiRow) {
+                showNotification && showNotification('❌ الرحلة غير متاحة', 'error');
                 loadDriverTaxiRequests();
                 return;
             }
 
-            // ٢) حدّث taxi_rides بنفس البيانات
-            var { data: rideRow } = await supabaseClient
-                .from('taxi_rides')
-                .update(updateFields)
-                .eq('id', rideId)
-                .select()
-                .maybeSingle();
-
-            // استخدم بيانات sh_public_orders إذا لم يوجد سجل taxi_rides
-            var rideData = rideRow || {
-                id:           rideId,
-                customer_name: pubOrd.customer_name,
-                customer_phone: pubOrd.phone,
-                estimated_price: pubOrd.total,
-                status: 'accepted'
-            };
-
-            _driverActiveTaxiRide = rideData;
+            _driverActiveTaxiRide = taxiRow;
             localStorage.setItem('driver_active_taxi_id', rideId);
-            _showDriverActiveTaxiCard(rideData);
-            _listenDriverTaxiRide(rideId);
-            showNotification && showNotification('تم قبول الرحلة ✅ توجه للعميل', 'success');
+            _showDriverActiveTaxiCard(taxiRow);
+            _DRIVER_TAXI_listenRide(rideId);
+            showNotification && showNotification('✅ تم القبول — توجه للعميل', 'success');
+
         } catch(e) {
-            showNotification && showNotification('خطأ في القبول: ' + (e.message || ''), 'error');
+            showNotification && showNotification('❌ ' + (e.message || 'خطأ'), 'error');
         }
     }
 
@@ -7389,166 +7754,368 @@
 
     // ── عرض بطاقة الرحلة النشطة للمندوب ──
     function _showDriverActiveTaxiCard(ride) {
-        const card = document.getElementById('driver-active-taxi-card');
-        const infoDiv = document.getElementById('driver-active-taxi-info');
-        const listDiv = document.getElementById('driver-taxi-requests-list');
+        var card    = document.getElementById('driver-active-taxi-card');
+        var infoDiv = document.getElementById('driver-active-taxi-info');
+        var listDiv = document.getElementById('driver-taxi-requests-list');
         if (!card || !infoDiv) return;
 
         card.style.display = 'block';
-        if (listDiv) listDiv.innerHTML = '<div style="text-align:center; color:var(--gold); font-size:11px; padding:10px;">أنت في رحلة نشطة</div>';
+        if (listDiv) listDiv.innerHTML = '<div style="text-align:center;color:#ff6b6b;font-size:11px;padding:10px;">🚖 أنت في رحلة نشطة</div>';
 
-        const dist = ride.distance_km ? parseFloat(ride.distance_km).toFixed(1) + ' كم' : '--';
-        const price = ride.estimated_price ? parseFloat(ride.estimated_price).toLocaleString() + ' ل.س' : '--';
+        var dist  = ride.distance_km     ? parseFloat(ride.distance_km).toFixed(1) + ' كم' : '--';
+        var price = ride.estimated_price ? Math.round(ride.estimated_price).toLocaleString() + ' ل.س' : '--';
+        var cTypes = { economy:'🚗 اقتصادي', comfort:'🚙 مريح', van:'🚐 فان' };
+        var carLabel = cTypes[ride.car_type] || '🚗 اقتصادي';
+        var fromName = _coordsToName(ride.pickup_lat,  ride.pickup_lng)  || '...';
+        var toName   = _coordsToName(ride.dropoff_lat, ride.dropoff_lng) || '...';
 
         infoDiv.innerHTML =
-            '<b style="color:var(--gold);">👤 ' + (ride.customer_name || '--') + '</b><br>' +
-            '📞 ' + (ride.customer_phone || '--') + '<br>' +
-            '📍 انطلاق: ' + (ride.pickup_lat ? ride.pickup_lat.toFixed(4) : '--') + ', ' + (ride.pickup_lng ? ride.pickup_lng.toFixed(4) : '--') + '<br>' +
-            '🏁 وجهة: ' + (ride.dropoff_lat ? ride.dropoff_lat.toFixed(4) : '--') + ', ' + (ride.dropoff_lng ? ride.dropoff_lng.toFixed(4) : '--') + '<br>' +
-            '📏 ' + dist + ' | 💰 ' + price;
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">' +
+                '<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:8px;">' +
+                    '<div style="font-size:9px;color:#888;">العميل</div>' +
+                    '<div style="font-size:12px;color:#ff6b6b;font-weight:bold;">' + escHtml(ride.customer_name||'عميل') + '</div>' +
+                    '<div style="font-size:11px;color:#aaa;">📞 ' + escHtml(ride.customer_phone||'--') + '</div>' +
+                '</div>' +
+                '<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:8px;">' +
+                    '<div style="font-size:9px;color:#888;">الرحلة</div>' +
+                    '<div style="font-size:13px;color:#2ecc71;font-weight:bold;">' + price + '</div>' +
+                    '<div style="font-size:11px;color:#d4af37;">' + dist + ' | ' + carLabel + '</div>' +
+                '</div>' +
+            '</div>' +
+            '<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:10px;margin-bottom:8px;font-size:11px;">' +
+                '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+                    '<span style="font-size:14px;">📍</span>' +
+                    '<div><span style="color:#888;font-size:9px;">من </span>' +
+                    '<span style="color:#fff;font-weight:bold;" id="active_from">' + fromName + '</span></div>' +
+                '</div>' +
+                '<div style="display:flex;align-items:center;gap:8px;">' +
+                    '<span style="font-size:14px;">🏁</span>' +
+                    '<div><span style="color:#888;font-size:9px;">إلى </span>' +
+                    '<span style="color:#fff;font-weight:bold;" id="active_to">' + toName + '</span></div>' +
+                '</div>' +
+            '</div>';
+
+        // تحديث الأسماء بـ reverse geocoding
+        if (ride.pickup_lat) {
+            _reverseGeocode(ride.pickup_lat, ride.pickup_lng).then(function(n) {
+                var el = document.getElementById('active_from');
+                if (el) el.innerText = n || fromName;
+            });
+        }
+        if (ride.dropoff_lat) {
+            _reverseGeocode(ride.dropoff_lat, ride.dropoff_lng).then(function(n) {
+                var el = document.getElementById('active_to');
+                if (el) el.innerText = n || toName;
+            });
+        }
     }
 
-    // ── تحديث حالة الرحلة من المندوب ──
+    // ── فتح Google Maps للتوجه لنقطة الانطلاق ──
+    function _openGoogleMapsPickup() {
+        if (!_driverActiveTaxiRide) return;
+        var lat = _driverActiveTaxiRide.pickup_lat;
+        var lng = _driverActiveTaxiRide.pickup_lng;
+        if (!lat || !lng) { showNotification && showNotification('لا توجد إحداثيات للانطلاق', 'error'); return; }
+        var url = 'https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng + '&travelmode=driving';
+        window.open(url, '_blank');
+    }
+
+    // ── فتح Google Maps للوصول للوجهة ──
+    function _openGoogleMapsDropoff() {
+        if (!_driverActiveTaxiRide) return;
+        var lat = _driverActiveTaxiRide.dropoff_lat;
+        var lng = _driverActiveTaxiRide.dropoff_lng;
+        if (!lat || !lng) { showNotification && showNotification('لا توجد إحداثيات للوجهة', 'error'); return; }
+        var url = 'https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng + '&travelmode=driving';
+        window.open(url, '_blank');
+    }
+
+    // ── عرض كود OTP للمندوب (يعطيه للعميل) ──
+    function _showDriverOTP() {
+        if (!_driverActiveTaxiRide) return;
+        var otpDiv  = document.getElementById('driver-otp-display');
+        var otpCode = document.getElementById('driver-otp-code');
+        if (!otpDiv || !otpCode) return;
+
+        var code = String(_driverActiveTaxiRide.verify_code || '----');
+        otpCode.innerText = code;
+        otpDiv.style.display = 'block';
+        showNotification && showNotification('🔑 الكود: ' + code + ' — أعطه للعميل لإنهاء الرحلة', 'success');
+    }
+
+    // ── [TAXI-ISOLATED] تحديث حالة الرحلة من المندوب ──
     async function updateTaxiRideStatus(newStatus) {
         if (!_driverActiveTaxiRide) return;
         try {
-            const updateData = { status: newStatus };
+            var updateData = { status: newStatus };
 
-            // تحديث موقع المندوب الحالي
+            // إضافة الموقع الحالي للمندوب
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(function(pos) {
                     supabaseClient.from('taxi_rides').update({
-                        status: newStatus,
+                        status:     newStatus,
                         driver_lat: pos.coords.latitude,
                         driver_lng: pos.coords.longitude
-                    }).eq('id', _driverActiveTaxiRide.id).then(function() {});
+                    }).eq('id', _driverActiveTaxiRide.id).then(function(){});
                 });
             }
 
             await supabaseClient.from('taxi_rides').update(updateData).eq('id', _driverActiveTaxiRide.id);
 
-            const labels = { on_the_way: '🚖 تم تحديث الحالة: في الطريق', started: '🚀 بدأت الرحلة!', completed: '✅ انتهت الرحلة بنجاح!' };
-            showNotification && showNotification(labels[newStatus] || 'تم التحديث', 'success');
+            // عرض الكود عند بدء الرحلة
+            if (newStatus === 'started') {
+                _showDriverOTP();
+            }
+
+            var labels = {
+                on_the_way: '🚖 في الطريق',
+                started:    '🚀 بدأت الرحلة! — أعطِ الكود للعميل',
+                completed:  '✅ انتهت الرحلة بنجاح!'
+            };
+            showNotification && showNotification(labels[newStatus] || '✅ تم التحديث', 'success');
 
             if (newStatus === 'completed') {
+                var rideId = _driverActiveTaxiRide.id;
                 _driverActiveTaxiRide = null;
                 localStorage.removeItem('driver_active_taxi_id');
-                const card = document.getElementById('driver-active-taxi-card');
-                if (card) card.style.display = 'none';
-                if (_driverTaxiChannel) { supabaseClient.removeChannel(_driverTaxiChannel); _driverTaxiChannel = null; }
+                if (_driverTaxiRideChannel) { try { supabaseClient.removeChannel(_driverTaxiRideChannel); } catch(e) {} _driverTaxiRideChannel = null; }
+                var card   = document.getElementById('driver-active-taxi-card');
+                var otpDiv = document.getElementById('driver-otp-display');
+                if (card)   card.style.display   = 'none';
+                if (otpDiv) otpDiv.style.display  = 'none';
                 setTimeout(loadDriverTaxiRequests, 500);
             } else {
                 _driverActiveTaxiRide.status = newStatus;
             }
         } catch(e) {
-            showNotification && showNotification('خطأ في التحديث', 'error');
+            showNotification && showNotification('خطأ في التحديث: ' + (e.message||''), 'error');
         }
     }
 
-    // ── الاستماع لتغييرات رحلة المندوب النشطة ──
-    function _listenDriverTaxiRide(rideId) {
-        if (_driverTaxiChannel) { supabaseClient.removeChannel(_driverTaxiChannel); _driverTaxiChannel = null; }
-        _driverTaxiChannel = supabaseClient
-            .channel('driver_taxi_ride_' + rideId)
+    // ================================================================
+    // [TAXI-ISOLATED-DRIVER] نظام التاكسي المستقل للمندوب
+    // يستخدم taxi_rides فقط — لا يلمس sh_public_orders إطلاقاً
+    // ================================================================
+
+    var _DRIVER_TAXI_activeChannel = null;
+    var _DRIVER_TAXI_newOrdersChannel = null;
+
+    // ── [TAXI-DB-RT] استماع لتحديثات الرحلة — على taxiDB المستقلة ──
+    var _driverTaxiRideChannel = null;
+    function _DRIVER_TAXI_listenRide(rideId) {
+        if (_driverTaxiRideChannel) {
+            try { supabaseClient.removeChannel(_driverTaxiRideChannel); } catch(e) {}
+        }
+        _driverTaxiRideChannel = taxiDB
+            .channel('drv_ride_' + rideId)
             .on('postgres_changes', {
-                event: 'UPDATE',
-                schema: 'public',
-                table: 'taxi_rides',
-                filter: 'id=eq.' + rideId
+                event: 'UPDATE', schema: 'public',
+                table: 'taxi_rides', filter: 'id=eq.' + rideId
             }, function(payload) {
                 if (!payload.new) return;
-                if (payload.new.status === 'cancelled') {
-                    showNotification && showNotification('تم إلغاء الرحلة من قبل العميل ❌', 'error');
+                var s = payload.new.status;
+                if (s === 'cancelled') {
+                    showNotification && showNotification('❌ تم إلغاء الرحلة من العميل', 'error');
                     _driverActiveTaxiRide = null;
                     localStorage.removeItem('driver_active_taxi_id');
-                    const card = document.getElementById('driver-active-taxi-card');
+                    var card = document.getElementById('driver-active-taxi-card');
                     if (card) card.style.display = 'none';
                     loadDriverTaxiRequests();
+                } else {
+                    _driverActiveTaxiRide = Object.assign(_driverActiveTaxiRide || {}, payload.new);
                 }
             })
-            .subscribe();
+            .subscribe(function(status) {
+                console.log('[TAXI-DB] ride listen:', status);
+                if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                    setTimeout(function() { _DRIVER_TAXI_listenRide(rideId); }, 3000);
+                }
+            });
+    }
+    function _listenDriverTaxiRide(rideId) { _DRIVER_TAXI_listenRide(rideId); }
+
+    // ═══════════════════════════════════════════════════════════
+    // [TAXI-RT] نظام استقبال الطلبات — Polling سريع + Realtime
+    // ═══════════════════════════════════════════════════════════
+    var _taxiPollTimer    = null;
+    var _taxiLastSeenId   = null;   // آخر طلب شُوهد
+    var _taxiLastCount    = 0;      // عدد الطلبات الأخير
+    var _taxiRTChannel    = null;
+
+    function _DRIVER_TAXI_startNewOrdersListener() {
+        // ── ١) Polling كل 4 ثوانٍ (يعمل بغض النظر عن Realtime) ──
+        _stopTaxiPoll();
+        _taxiPollTimer = setInterval(function() {
+            _taxiPollForNewOrders();
+        }, 4000);
+        // فحص فوري
+        console.log('[TAXI] Starting poll, role:', _getDriverRole());
+        _taxiPollForNewOrders();
+
+        // ── ٢) Realtime كـ طبقة إضافية ──
+        if (_taxiRTChannel) {
+            try { supabaseClient.removeChannel(_taxiRTChannel); } catch(e) {}
+        }
+        _taxiRTChannel = taxiDB
+            .channel('taxi_rt_' + Date.now())
+            .on('postgres_changes', { event:'INSERT', schema:'public', table:'taxi_rides' },
+                function(payload) {
+                    if (!payload.new || payload.new.status !== 'searching') return;
+                    if (_driverActiveTaxiRide) return;
+                    var role = _getDriverRole();
+                    if (role === 'delivery') return;
+                    _onNewTaxiOrder(payload.new);
+                })
+            .on('postgres_changes', { event:'UPDATE', schema:'public', table:'taxi_rides' },
+                function() { _taxiPollForNewOrders(); })
+            .subscribe(function(status) {
+                console.log('[TAXI-RT] status:', status);
+                if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                    setTimeout(_DRIVER_TAXI_startNewOrdersListener, 5000);
+                }
+            });
     }
 
-    // ── بدء الاستطلاع الدوري لطلبات التاكسي ──
+    function _stopTaxiPoll() {
+        if (_taxiPollTimer) { clearInterval(_taxiPollTimer); _taxiPollTimer = null; }
+    }
+
+    function _getDriverRole() {
+        if (!currentUserData) return 'delivery';
+        // إذا لم يُحمَّل driver_role بعد، اقرأه من DB
+        var r = currentUserData.driver_role || currentUserData.work_type || '';
+        if (!r || r === '') return 'taxi'; // افتراضي مؤقت حتى تصل البيانات
+        return r;
+    }
+
+    async function _taxiPollForNewOrders() {
+        if (_driverActiveTaxiRide) return;
+        var role = _getDriverRole();
+        if (role === 'delivery') return;
+
+        try {
+            var { data, error } = await taxiDB
+                .from('taxi_rides')
+                .select('id,customer_name,created_at')
+                .eq('status','searching')
+                .order('created_at', { ascending: false })
+                .limit(5);
+
+            if (error) {
+                console.error('[TAXI-POLL] Error:', error.message);
+                return;
+            }
+            if (!data) return;
+
+            var newCount = data.length;
+            var newestId = data.length > 0 ? data[0].id : null;
+
+            var isFirstPoll = (_taxiLastSeenId === null && _taxiLastCount === 0);
+
+            if (newCount > _taxiLastCount || (newestId && newestId !== _taxiLastSeenId)) {
+                // طلبات جديدة
+                if (!isFirstPoll && newCount > 0) {
+                    // إشعار فقط إذا لم يكن أول استطلاع
+                    var newOrders = data.filter(function(r) { return r.id !== _taxiLastSeenId; });
+                    if (newOrders.length > 0) _onNewTaxiOrder(newOrders[0]);
+                }
+                _taxiLastSeenId = newestId;
+                _taxiLastCount  = newCount;
+                // تحديث القائمة دائماً
+                loadDriverTaxiRequests();
+
+            } else if (newCount < _taxiLastCount) {
+                _taxiLastCount = newCount;
+                loadDriverTaxiRequests();
+            }
+        } catch(e) {}
+    }
+
+    function _onNewTaxiOrder(order) {
+        // رفرفة الشاهين
+        var icon = document.getElementById('shahen-flap-icon');
+        if (icon) {
+            icon.classList.add('shahen-flap-fast');
+            setTimeout(function(){ icon.classList.remove('shahen-flap-fast'); }, 3000);
+        }
+        // إشعار
+        var msg = '🚖 طلب تاكسي جديد! ' + (order.customer_name || 'عميل');
+        if (typeof siteNotify === 'function')      siteNotify(msg);
+        else if (typeof showNotification === 'function') showNotification(msg, 'success');
+    }
+
+    function _startTaxiRealtimeListener() { _DRIVER_TAXI_startNewOrdersListener(); }
+
+    // ── استطلاع دوري ──
     function _startDriverTaxiPoll() {
         _stopDriverTaxiPoll();
         _driverTaxiPollInterval = setInterval(function() {
             if (_driverTaxiAvailable && !_driverActiveTaxiRide) {
                 loadDriverTaxiRequests();
             }
-        }, 12000);
+        }, 10000);
     }
-
-    // ── إيقاف الاستطلاع ──
     function _stopDriverTaxiPoll() {
         if (_driverTaxiPollInterval) { clearInterval(_driverTaxiPollInterval); _driverTaxiPollInterval = null; }
+        _stopTaxiPoll(); // أيضاً أوقف الـ polling الجديد
     }
 
-    // ── تهيئة نظام التاكسي للمندوب عند تحميل الصفحة ──
+    // ── تهيئة نظام التاكسي للمندوب ──
     function _initDriverTaxiSystem() {
         _updateDriverTaxiToggleUI();
 
-        // فحص وجود رحلة نشطة محفوظة
+        // فحص رحلة نشطة محفوظة — من taxi_rides فقط
         var savedRideId = localStorage.getItem('driver_active_taxi_id');
         if (savedRideId && currentUserData) {
-            supabaseClient.from('sh_public_orders').select('*').eq('id', savedRideId).maybeSingle().then(function(res) {
-                if (res.data && !['completed', 'cancelled'].includes(res.data.status)) {
-                    _driverActiveTaxiRide = res.data;
-                    _showDriverActiveTaxiCard(res.data);
-                    _listenDriverTaxiRide(savedRideId);
-                } else {
-                    localStorage.removeItem('driver_active_taxi_id');
-                }
-            });
+            supabaseClient.from('taxi_rides')
+                .select('*').eq('id', savedRideId).maybeSingle()
+                .then(function(res) {
+                    if (res.data && !['completed','cancelled'].includes(res.data.status)) {
+                        _driverActiveTaxiRide = res.data;
+                        _showDriverActiveTaxiCard(res.data);
+                        _DRIVER_TAXI_listenRide(savedRideId);
+                    } else {
+                        localStorage.removeItem('driver_active_taxi_id');
+                    }
+                });
         }
 
-        // إظهار تبويب التاكسي إذا كان نوع عمل المندوب يشمله
         _checkDriverTaxiTabVisibility();
-
-        // بدء الاستطلاع إذا كان متاحاً
-        if (_driverTaxiAvailable) _startDriverTaxiPoll();
-
-        // ── Realtime: استمع لطلبات تاكسي جديدة ──
-        _startTaxiRealtimeListener();
-    }
-
-    // ── Realtime listener لطلبات التاكسي في sh_public_orders ──
-    var _taxiRealtimeChannel = null;
-    function _startTaxiRealtimeListener() {
-        if (_taxiRealtimeChannel) { supabaseClient.removeChannel(_taxiRealtimeChannel); }
-        _taxiRealtimeChannel = supabaseClient
-            .channel('taxi_new_orders')
-            .on('postgres_changes', {
-                event: 'INSERT',
-                schema: 'public',
-                table: 'sh_public_orders'
-            }, function(payload) {
-                if (!payload.new) return;
-                if (payload.new.order_type !== 'taxi_ride') return;
-                if (payload.new.status !== 'searching') return;
-                if (!_driverTaxiAvailable) return;
-                if (_driverActiveTaxiRide) return;
-
-                // إشعار وتحديث القائمة
-                var icon = document.getElementById('shahen-flap-icon');
-                if (icon) { icon.classList.add('shahen-flap-fast'); setTimeout(function(){ icon.classList.remove('shahen-flap-fast'); }, 2500); }
-                siteNotify('🚖 طلب تاكسي جديد! ' + (payload.new.customer_name || ''));
-                // إذا كان في صفحة التاكسي — حدّث القائمة فوراً
-                if (document.getElementById('p-taxi-driver') && document.getElementById('p-taxi-driver').classList.contains('active')) {
-                    loadDriverTaxiRequests();
-                }
-            })
-            .subscribe();
+        // إعادة تعيين مؤشرات الـ polling
+        _taxiLastSeenId = null;
+        _taxiLastCount  = 0;
+        // الـ Realtime listener يعمل دائماً
+        _DRIVER_TAXI_startNewOrdersListener();
+        if (_driverTaxiAvailable) {
+            _startDriverTaxiPoll();
+        }
     }
 
     // ── فحص هل يجب إظهار تبويب التاكسي ──
     async function _checkDriverTaxiTabVisibility() {
         if (!currentUserData) return;
         try {
-            const { data: driverData } = await supabaseClient.from('drivers').select('work_type, taxi_available').eq('id', currentUserData.id).maybeSingle();
+            const { data: driverData } = await supabaseClient.from('drivers')
+                .select('driver_role, work_type, taxi_available, car_plate, car_color, car_color_hex')
+                .eq('id', currentUserData.id).maybeSingle();
             if (driverData) {
+                // مزامنة بيانات السيارة
+                if (driverData.car_plate)     currentUserData.car_plate     = driverData.car_plate;
+                if (driverData.car_color)     currentUserData.car_color     = driverData.car_color;
+                if (driverData.car_color_hex) currentUserData.car_color_hex = driverData.car_color_hex;
+                // تحديث driver_role
+                var role = driverData.driver_role || driverData.work_type || 'delivery';
+                currentUserData.driver_role = role;
+                // مزامنة taxi_available من DB
+                if (typeof driverData.taxi_available !== 'undefined') {
+                    _driverTaxiAvailable = driverData.taxi_available;
+                    localStorage.setItem('driver_taxi_available', _driverTaxiAvailable ? '1' : '0');
+                    _updateDriverTaxiToggleUI();
+                }
+                // إعادة تشغيل الـ listener بعد معرفة الدور
+                _DRIVER_TAXI_startNewOrdersListener();
                 // إظهار تبويب التاكسي إذا كان نوع العمل تاكسي أو الاثنين
-                const showTaxi = (driverData.work_type === 'taxi' || driverData.work_type === 'both');
+                const showTaxi = (role === 'taxi' || role === 'both');
                 const taxiTab = document.getElementById('t-taxi-driver');
                 if (taxiTab) taxiTab.style.display = showTaxi ? 'flex' : 'none';
 
