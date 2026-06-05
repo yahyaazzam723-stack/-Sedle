@@ -7259,20 +7259,21 @@
 
     // ── جلب طلبات التاكسي المتاحة ──
     async function loadDriverTaxiRequests() {
-        const listDiv = document.getElementById('driver-taxi-requests-list');
+        var listDiv = document.getElementById('driver-taxi-requests-list');
         if (!listDiv) return;
 
-        // إذا كان المندوب في رحلة نشطة لا نعرض طلبات جديدة
         if (_driverActiveTaxiRide) {
-            listDiv.innerHTML = '<div style="text-align:center; color:var(--gold); font-size:11px; padding:10px;">أنت في رحلة نشطة</div>';
+            listDiv.innerHTML = '<div style="text-align:center; color:var(--gold); font-size:11px; padding:10px;">أنت في رحلة نشطة 🚖</div>';
             return;
         }
 
         try {
-            const { data: requests, error } = await supabaseClient
-                .from('taxi_rides')
+            // نقرأ من sh_public_orders (order_type='taxi_ride') — هذا ما يُنشئه العميل
+            var { data: requests, error } = await supabaseClient
+                .from('sh_public_orders')
                 .select('*')
                 .eq('status', 'searching')
+                .eq('order_type', 'taxi_ride')
                 .order('created_at', { ascending: false })
                 .limit(10);
 
@@ -7281,23 +7282,34 @@
                 return;
             }
 
-            listDiv.innerHTML = requests.map(function(r) {
-                const dist = r.distance_km ? parseFloat(r.distance_km).toFixed(1) + ' كم' : '--';
-                const price = r.estimated_price ? parseFloat(r.estimated_price).toLocaleString() + ' ل.س' : '--';
-                const dt = r.created_at ? new Date(r.created_at).toLocaleString('ar-SA') : '';
-                return '<div style="border:1px solid rgba(212,175,55,0.25); border-radius:10px; padding:10px; margin-bottom:8px;">' +
-                    '<div style="font-size:11px; color:#fff; font-weight:bold; margin-bottom:5px;">👤 ' + (r.customer_name || '--') + '</div>' +
-                    '<div style="font-size:10px; color:#aaa; margin-bottom:6px; line-height:1.7;">' +
-                    '📍 الانطلاق: ' + (r.pickup_lat ? r.pickup_lat.toFixed(4) : '--') + ', ' + (r.pickup_lng ? r.pickup_lng.toFixed(4) : '--') + '<br>' +
-                    '🏁 الوجهة: ' + (r.dropoff_lat ? r.dropoff_lat.toFixed(4) : '--') + ', ' + (r.dropoff_lng ? r.dropoff_lng.toFixed(4) : '--') + '<br>' +
-                    '📏 ' + dist + ' | 💰 ' + price +
+            listDiv.innerHTML = '';
+            requests.forEach(function(r) {
+                // استخراج إحداثيات من restaurant_note
+                var note  = r.restaurant_note || '';
+                var price = r.total ? parseFloat(r.total).toLocaleString() + ' ل.س' : '--';
+                var items = [];
+                try { items = JSON.parse(r.items || '[]'); } catch(e) {}
+                var distText = items.length > 0 ? items[0].n : note;
+
+                var div = document.createElement('div');
+                div.style.cssText = 'border:1px solid rgba(212,175,55,0.3); border-radius:12px; padding:12px; margin-bottom:8px; background:rgba(212,175,55,0.04);';
+                div.innerHTML =
+                    '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">' +
+                        '<div style="font-size:12px; color:#fff; font-weight:bold;">🚖 ' + (r.customer_name || '--') + '</div>' +
+                        '<div style="font-size:10px; color:var(--gold); font-weight:bold;">' + price + '</div>' +
+                    '</div>' +
+                    '<div style="font-size:10px; color:#aaa; margin-bottom:8px; line-height:1.7;">' +
+                        '📞 ' + (r.phone || '--') + '<br>' +
+                        '📍 ' + note.replace(/\|/g,'<br>🔹 ') +
                     '</div>' +
                     '<div style="display:flex; gap:8px;">' +
-                    '<button onclick="acceptTaxiRide(\'' + r.id + '\')" style="flex:1; background:var(--gold); color:#000; border:none; padding:7px; border-radius:8px; font-size:11px; font-weight:bold; cursor:pointer; font-family:inherit;">✅ قبول</button>' +
-                    '<button onclick="rejectTaxiRide(\'' + r.id + '\')" style="flex:0.4; background:rgba(231,76,60,0.15); color:#e74c3c; border:1px solid #e74c3c; padding:7px; border-radius:8px; font-size:11px; cursor:pointer; font-family:inherit;">❌</button>' +
-                    '</div>' +
+                        '<button style="flex:1; background:var(--gold); color:#000; border:none; padding:9px; border-radius:9px; font-size:11px; font-weight:bold; cursor:pointer; font-family:inherit;" ' +
+                            'onclick="acceptTaxiRide('' + r.id + '')">✅ قبول الرحلة</button>' +
+                        '<button style="flex:0.35; background:rgba(231,76,60,0.12); color:#e74c3c; border:1px solid #e74c3c; padding:9px; border-radius:9px; font-size:11px; cursor:pointer; font-family:inherit;" ' +
+                            'onclick="rejectTaxiRide('' + r.id + '')">❌</button>' +
                     '</div>';
-            }).join('');
+                listDiv.appendChild(div);
+            });
         } catch(e) {
             listDiv.innerHTML = '<div style="text-align:center; color:#555; font-size:11px; padding:10px;">تعذّر التحميل</div>';
         }
@@ -7307,34 +7319,57 @@
     async function acceptTaxiRide(rideId) {
         if (!currentUserData) return;
         try {
-            const updateData = {
-                status: 'accepted',
-                driver_id: currentUserData.id,
-                driver_name: currentUserData.name || currentUserData.full_name || '--',
-                driver_phone: currentUserData.phone || '--',
-                accepted_at: new Date().toISOString()
+            var driverName  = currentUserData.name  || currentUserData.full_name || '--';
+            var driverPhone = currentUserData.phone || '--';
+            var now         = new Date().toISOString();
+
+            var updateFields = {
+                status:      'accepted',
+                driver_id:   currentUserData.id,
+                driver_name: driverName,
+                driver_phone: driverPhone,
+                accepted_at: now
             };
-            const { data: updatedRide, error } = await supabaseClient
-                .from('taxi_rides')
-                .update(updateData)
+
+            // ١) حاول تحديث sh_public_orders أولاً (atomic — أول من يقبل يفوز)
+            var { data: pubOrd, error: pubErr } = await supabaseClient
+                .from('sh_public_orders')
+                .update({ status: 'accepted', driver_id: currentUserData.id, driver_name: driverName, driver_phone: driverPhone })
                 .eq('id', rideId)
-                .eq('status', 'searching') // فقط إذا لم يُقبل بعد
+                .eq('status', 'searching')
                 .select()
                 .single();
 
-            if (error || !updatedRide) {
-                showNotification && showNotification('تم قبول هذا الطلب من قبل سائق آخر', 'error');
+            if (pubErr || !pubOrd) {
+                showNotification && showNotification('تم قبول هذا الطلب من قبل سائق آخر ❌', 'error');
                 loadDriverTaxiRequests();
                 return;
             }
 
-            _driverActiveTaxiRide = updatedRide;
+            // ٢) حدّث taxi_rides بنفس البيانات
+            var { data: rideRow } = await supabaseClient
+                .from('taxi_rides')
+                .update(updateFields)
+                .eq('id', rideId)
+                .select()
+                .maybeSingle();
+
+            // استخدم بيانات sh_public_orders إذا لم يوجد سجل taxi_rides
+            var rideData = rideRow || {
+                id:           rideId,
+                customer_name: pubOrd.customer_name,
+                customer_phone: pubOrd.phone,
+                estimated_price: pubOrd.total,
+                status: 'accepted'
+            };
+
+            _driverActiveTaxiRide = rideData;
             localStorage.setItem('driver_active_taxi_id', rideId);
-            _showDriverActiveTaxiCard(updatedRide);
+            _showDriverActiveTaxiCard(rideData);
             _listenDriverTaxiRide(rideId);
             showNotification && showNotification('تم قبول الرحلة ✅ توجه للعميل', 'success');
         } catch(e) {
-            showNotification && showNotification('خطأ في القبول', 'error');
+            showNotification && showNotification('خطأ في القبول: ' + (e.message || ''), 'error');
         }
     }
 
@@ -7454,9 +7489,9 @@
         _updateDriverTaxiToggleUI();
 
         // فحص وجود رحلة نشطة محفوظة
-        const savedRideId = localStorage.getItem('driver_active_taxi_id');
+        var savedRideId = localStorage.getItem('driver_active_taxi_id');
         if (savedRideId && currentUserData) {
-            supabaseClient.from('taxi_rides').select('*').eq('id', savedRideId).maybeSingle().then(function(res) {
+            supabaseClient.from('sh_public_orders').select('*').eq('id', savedRideId).maybeSingle().then(function(res) {
                 if (res.data && !['completed', 'cancelled'].includes(res.data.status)) {
                     _driverActiveTaxiRide = res.data;
                     _showDriverActiveTaxiCard(res.data);
@@ -7472,6 +7507,38 @@
 
         // بدء الاستطلاع إذا كان متاحاً
         if (_driverTaxiAvailable) _startDriverTaxiPoll();
+
+        // ── Realtime: استمع لطلبات تاكسي جديدة ──
+        _startTaxiRealtimeListener();
+    }
+
+    // ── Realtime listener لطلبات التاكسي في sh_public_orders ──
+    var _taxiRealtimeChannel = null;
+    function _startTaxiRealtimeListener() {
+        if (_taxiRealtimeChannel) { supabaseClient.removeChannel(_taxiRealtimeChannel); }
+        _taxiRealtimeChannel = supabaseClient
+            .channel('taxi_new_orders')
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'sh_public_orders'
+            }, function(payload) {
+                if (!payload.new) return;
+                if (payload.new.order_type !== 'taxi_ride') return;
+                if (payload.new.status !== 'searching') return;
+                if (!_driverTaxiAvailable) return;
+                if (_driverActiveTaxiRide) return;
+
+                // إشعار وتحديث القائمة
+                var icon = document.getElementById('shahen-flap-icon');
+                if (icon) { icon.classList.add('shahen-flap-fast'); setTimeout(function(){ icon.classList.remove('shahen-flap-fast'); }, 2500); }
+                siteNotify('🚖 طلب تاكسي جديد! ' + (payload.new.customer_name || ''));
+                // إذا كان في صفحة التاكسي — حدّث القائمة فوراً
+                if (document.getElementById('p-taxi-driver') && document.getElementById('p-taxi-driver').classList.contains('active')) {
+                    loadDriverTaxiRequests();
+                }
+            })
+            .subscribe();
     }
 
     // ── فحص هل يجب إظهار تبويب التاكسي ──
