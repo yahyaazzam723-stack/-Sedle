@@ -49,6 +49,18 @@
         .page.active { display: flex; flex-direction: column; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+        /* [TAXI] شعار الشاهين يرفرف */
+        @keyframes shahenFlap {
+            0%   { transform: scaleX(1)   translateY(0px)  rotate(-5deg); }
+            100% { transform: scaleX(-1)  translateY(-3px) rotate(5deg);  }
+        }
+        @keyframes shahenFlapFast {
+            0%   { transform: scaleX(1)   translateY(0px)  rotate(-8deg); }
+            100% { transform: scaleX(-1)  translateY(-5px) rotate(8deg);  }
+        }
+        .shahen-flap      { animation: shahenFlap     0.45s ease-in-out infinite alternate; }
+        .shahen-flap-fast { animation: shahenFlapFast 0.2s  ease-in-out infinite alternate; }
+
         #p-main::after {
             content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 240px; height: 240px; background: url('https://i.postimg.cc/QxzPkmPf/Whats-App-Image-2026-04-10-at-6-22-30-PM-t7edrz.jpg') no-repeat center/contain;
@@ -614,9 +626,13 @@
                 <span class="slider"></span>
             </label>
         </div>
-        <div class="refresh-progress-container" onclick="refreshOrders()">
+        <div class="refresh-progress-container" onclick="refreshOrders()" style="position:relative; overflow:hidden;">
             <div id="refresh-bar"></div>
-            <div class="refresh-text"><i class="fas fa-sync-alt"></i> جاري البحث عن صيد جديد...</div>
+            <div class="refresh-text" style="display:flex; align-items:center; justify-content:center; gap:8px;">
+                <!-- شعار الشاهين يرفرف -->
+                <span id="shahen-flap-icon" style="font-size:18px; display:inline-block; animation:shahenFlap 0.4s ease-in-out infinite alternate;">🦅</span>
+                <span id="refresh-label">جاري البحث عن صيد جديد...</span>
+            </div>
         </div>
         <div id="orders-list" style="position: relative; z-index: 10;"></div>
     </div>
@@ -2064,8 +2080,17 @@
                 .channel('public_orders_realtime')
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sh_public_orders' }, payload => {
                     if(payload.new.is_consultation === true) return;
+                    // [TAXI] فلتر حسب نوع المندوب
+                    const _rt_role = (currentUserData && currentUserData.driver_role) || 'delivery';
+                    const _rt_type = payload.new.order_type || '';
+                    if (_rt_role === 'delivery' && _rt_type === 'taxi_ride') return;
+                    if (_rt_role === 'taxi'     && _rt_type !== 'taxi_ride') return;
                     if(payload.new.status === 'searching' || payload.new.status === 'pending') {
-                        siteNotify("🦅 صيد جديد! طلب من " + (payload.new.restaurant_name || payload.new.res || payload.new.res_name));
+                        const _notifIcon = _rt_type === 'taxi_ride' ? '🚖' : '🦅';
+                        siteNotify(_notifIcon + " صيد جديد! " + (payload.new.restaurant_name || payload.new.res || payload.new.res_name || 'طلب جديد'));
+                        // رفرفة سريعة عند وصول طلب جديد
+                        var flapEl = document.getElementById('shahen-flap-icon');
+                        if (flapEl) { flapEl.classList.add('shahen-flap-fast'); setTimeout(function(){ flapEl.classList.remove('shahen-flap-fast'); }, 2000); }
                         refreshOrders();
                     }
                 })
@@ -3560,9 +3585,19 @@
         }
 
         const { data, error } = await supabaseClient.from('sh_public_orders').select('*').in('status', ['searching', 'pending']).order('created_at', { ascending: false });
-        // فلترة الاستشارات يدوياً بعد الجلب لتجنب مشكلة .or في Supabase
-        // الطلبات المقبولة (accepted/preparing/ready) مخفية من القائمة — ظهرت في صفحة الطلب النشط فقط
-        const filteredData = data ? data.filter(o => o.is_consultation !== true) : [];
+
+        // ── [TAXI] فلترة الطلبات حسب نوع المندوب ──
+        const _driverRole = (currentUserData && currentUserData.driver_role) || 'delivery';
+        const filteredData = data ? data.filter(o => {
+            // حذف الاستشارات دائماً
+            if (o.is_consultation === true) return false;
+            // إذا المندوب delivery فقط — لا يرى طلبات taxi_ride
+            if (_driverRole === 'delivery' && o.order_type === 'taxi_ride') return false;
+            // إذا المندوب taxi فقط — يرى فقط طلبات taxi_ride
+            if (_driverRole === 'taxi' && o.order_type !== 'taxi_ride') return false;
+            // إذا both — يرى كل شيء
+            return true;
+        }) : [];
         list.innerHTML = "";
         
         if(error) {
