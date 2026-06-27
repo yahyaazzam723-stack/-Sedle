@@ -6213,15 +6213,17 @@
                 try {
                     const { data: cust } = await supabaseClient.from('customers').select('lat,lng').eq('id', order.customer_id).maybeSingle();
                     if (cust && cust.lat && cust.lng) { lat = parseFloat(cust.lat); lng = parseFloat(cust.lng); }
-                } catch(e) {}
+                } catch(e) { console.error('[NAV-RESOLVE] خطأ أثناء جلب موقع العميل من حسابه الشخصي:', e); }
             }
+            if (!lat || !lng) console.error('[NAV-RESOLVE] تعذّر تحديد موقع العميل — order.lat/lng:', order.lat, order.lng, 'customer_id:', order.customer_id);
             return (lat && lng) ? { lat, lng } : null;
         } else {
             let lat = parseFloat(order.pickup_lat), lng = parseFloat(order.pickup_lng);
             if ((!lat || !lng) && order.restaurant_id) {
                 try {
                     const resTbl = (order.res_type === 'pharmacy' || order.res_type === 'pharmacy_delivery') ? 'pharmacies' : 'restaurants';
-                    const { data: resRow } = await supabaseClient.from(resTbl).select('pickup_lat,pickup_lng,maps_url').eq('id', order.restaurant_id).maybeSingle();
+                    const { data: resRow, error: resErr } = await supabaseClient.from(resTbl).select('pickup_lat,pickup_lng,maps_url').eq('id', order.restaurant_id).maybeSingle();
+                    if (resErr) console.error('[NAV-RESOLVE] خطأ أثناء جلب صف المطعم/الصيدلية (' + resTbl + '):', resErr);
                     if (resRow) {
                         lat = parseFloat(resRow.pickup_lat); lng = parseFloat(resRow.pickup_lng);
                         if ((!lat || !lng) && resRow.maps_url) {
@@ -6229,13 +6231,40 @@
                             if (resolved) {
                                 lat = resolved.lat; lng = resolved.lng;
                                 // تصحيح ذاتي: نحفظ الإحداثيات المُستخرجة بكل من جدول المطعم والطلب نفسه لتفادي إعادة الحل لاحقاً
-                                try { await supabaseClient.from(resTbl).update({ pickup_lat: lat, pickup_lng: lng }).eq('id', order.restaurant_id); } catch(e) {}
-                                try { await supabaseClient.from('sh_public_orders').update({ pickup_lat: lat, pickup_lng: lng }).eq('id', order.id); } catch(e) {}
+                                try { await supabaseClient.from(resTbl).update({ pickup_lat: lat, pickup_lng: lng }).eq('id', order.restaurant_id); } catch(e) { console.error('[NAV-RESOLVE] فشل حفظ الإحداثيات المُستخرجة على جدول المطعم:', e); }
+                                try { await supabaseClient.from('sh_public_orders').update({ pickup_lat: lat, pickup_lng: lng }).eq('id', order.id); } catch(e) { console.error('[NAV-RESOLVE] فشل حفظ الإحداثيات المُستخرجة على الطلب نفسه:', e); }
+                            } else {
+                                console.error('[NAV-RESOLVE] تعذّر استخراج إحداثيات من رابط الخريطة المحفوظ:', resRow.maps_url);
                             }
                         }
+                    } else {
+                        console.error('[NAV-RESOLVE] لم يُعثر على صف المطعم/الصيدلية في (' + resTbl + ') لـ restaurant_id:', order.restaurant_id);
                     }
-                } catch(e) {}
+                } catch(e) { console.error('[NAV-RESOLVE] استثناء غير متوقع أثناء حل موقع المطعم:', e); }
             }
+            // [FIX-NAME-FALLBACK] الاحتياط الأهم والأكثر موثوقية: البحث باسم المطعم نفسه (restaurant_name) —
+            // هذا الحقل يُحفَظ بشكل صحيح دائماً على كل الطلبات (تأكدنا منه مراراً)، بعكس restaurant_id الذي
+            // قد يكون فاضياً لأسباب مختلفة. هذا يضمن عمل الملاحة حتى لو فشل الربط بالمعرّف لأي سبب
+            if ((!lat || !lng) && order.restaurant_name) {
+                for (const tbl of ['restaurants', 'pharmacies']) {
+                    try {
+                        const { data: resRow, error: nameErr } = await supabaseClient.from(tbl).select('id,pickup_lat,pickup_lng,maps_url').eq('name', order.restaurant_name).maybeSingle();
+                        if (nameErr) { console.error('[NAV-RESOLVE] خطأ أثناء البحث باسم المطعم (' + tbl + '):', nameErr); continue; }
+                        if (!resRow) continue;
+                        lat = parseFloat(resRow.pickup_lat); lng = parseFloat(resRow.pickup_lng);
+                        if ((!lat || !lng) && resRow.maps_url) {
+                            const resolved = await _resolveMapsUrlCoords(resRow.maps_url);
+                            if (resolved) { lat = resolved.lat; lng = resolved.lng; }
+                        }
+                        if (lat && lng) {
+                            // تصحيح ذاتي: نحفظ restaurant_id الصحيح على الطلب الآن بعد إيجاده بالاسم، لتفادي البحث بالاسم لاحقاً
+                            try { await supabaseClient.from('sh_public_orders').update({ restaurant_id: String(resRow.id), pickup_lat: lat, pickup_lng: lng }).eq('id', order.id); } catch(e) { console.error('[NAV-RESOLVE] فشل حفظ restaurant_id المُكتشف بالاسم على الطلب:', e); }
+                            break;
+                        }
+                    } catch(e) { console.error('[NAV-RESOLVE] استثناء أثناء البحث باسم المطعم (' + tbl + '):', e); }
+                }
+            }
+            if (!lat || !lng) console.error('[NAV-RESOLVE] تعذّر تحديد موقع المطعم نهائياً — order.pickup_lat/lng:', order.pickup_lat, order.pickup_lng, 'restaurant_id:', order.restaurant_id, 'restaurant_name:', order.restaurant_name);
             return (lat && lng) ? { lat, lng } : null;
         }
     }
