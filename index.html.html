@@ -335,8 +335,60 @@
             color: #2ecc71;
         }
     </style>
+    <!-- ===== [NAV-SYSTEM] مكتبة Mapbox GL JS لنظام الملاحة الداخلي ===== -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.css" rel="stylesheet">
 </head>
 <body>
+
+<!-- ===== [NAV-SYSTEM] صفحة الملاحة الداخلية الكاملة الشاشة — بديل كامل عن فتح خرائط جوجل خارجياً ===== -->
+<div id="nav-page" style="display:none; position:fixed; inset:0; z-index:999999; background:#0a0a0a;">
+    <div id="nav-map" style="position:absolute; inset:0;"></div>
+
+    <!-- زر الرجوع -->
+    <button onclick="closeNavigationPage()" style="position:absolute; top:14px; right:14px; z-index:10; width:42px; height:42px; border-radius:50%; background:rgba(20,20,20,0.85); border:1px solid rgba(255,255,255,0.2); color:#fff; font-size:16px; cursor:pointer;">
+        <i class="fas fa-arrow-right"></i>
+    </button>
+
+    <!-- بطاقة التعليمات العلوية (الاتجاه القادم) -->
+    <div id="nav-instruction-card" style="position:absolute; top:14px; left:14px; right:66px; z-index:10; background:rgba(20,20,20,0.92); border:1px solid var(--gold); border-radius:14px; padding:12px 14px; display:flex; align-items:center; gap:12px;">
+        <div id="nav-maneuver-icon" style="font-size:26px; color:var(--gold); width:34px; text-align:center; flex-shrink:0;"><i class="fas fa-location-arrow"></i></div>
+        <div style="flex:1; min-width:0;">
+            <div id="nav-instruction-text" style="font-size:13px; font-weight:bold; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">جاري تحديد المسار...</div>
+            <div id="nav-instruction-street" style="font-size:10.5px; color:#aaa; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">—</div>
+        </div>
+        <div id="nav-instruction-dist" style="font-size:13px; font-weight:bold; color:var(--gold); flex-shrink:0;">--</div>
+    </div>
+
+    <!-- شريط حالة عند إعادة حساب المسار -->
+    <div id="nav-rerouting-banner" style="display:none; position:absolute; top:78px; left:14px; right:14px; z-index:10; background:rgba(231,76,60,0.92); color:#fff; text-align:center; padding:8px; border-radius:10px; font-size:12px; font-weight:bold;">
+        🔄 جاري إعادة حساب أفضل مسار...
+    </div>
+
+    <!-- زر تمركز / متابعة المندوب -->
+    <button id="nav-recenter-btn" onclick="_navRecenter()" style="position:absolute; bottom:160px; left:14px; z-index:10; width:42px; height:42px; border-radius:50%; background:rgba(20,20,20,0.85); border:1px solid var(--gold); color:var(--gold); font-size:16px; cursor:pointer;">
+        <i class="fas fa-location-arrow"></i>
+    </button>
+
+    <!-- بطاقة الوجهة + ETA + المسافة السفلية -->
+    <div style="position:absolute; bottom:0; left:0; right:0; z-index:10; background:linear-gradient(to top, rgba(10,10,10,0.97), rgba(10,10,10,0.85)); padding:14px 16px 20px; border-top:1px solid rgba(255,255,255,0.1);">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+            <span id="nav-destination-icon" style="font-size:16px;">🏪</span>
+            <span id="nav-destination-label" style="font-size:12px; color:#ccc; font-weight:bold;">متجه إلى المطعم</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div style="font-size:10px; color:#888;">الوقت المتوقع</div>
+                <div id="nav-eta-value" style="font-size:22px; font-weight:bold; color:var(--gold);">-- دقيقة</div>
+            </div>
+            <div style="text-align:left;">
+                <div style="font-size:10px; color:#888;">المسافة المتبقية</div>
+                <div id="nav-dist-value" style="font-size:22px; font-weight:bold; color:#fff;">-- كم</div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ===== نهاية صفحة الملاحة ===== -->
 
 <div class="app-shell">
     <div id="site-notify"></div>
@@ -1011,6 +1063,8 @@
                     <span class="slider"></span>
                 </label>
             </div>
+            <!-- [FIX-WAKE-LOCK] تنبيه صادق للمندوب — مهم جداً لضمان استمرار التتبع -->
+            <p style="font-size:9.5px; color:#e67e22; margin:8px 0 0; line-height:1.6;"><i class="fas fa-info-circle"></i> لضمان استمرار وصول موقعك للعميل والإدارة بدون انقطاع: اترك هذا التطبيق مفتوحاً في المقدمة أثناء التوصيل، ولا تنتقل لتطبيقات أخرى. إغلاق التطبيق أو قفل الشاشة يدوياً يوقف إرسال الموقع فوراً.</p>
         </div>
         <!-- ===== قسم نوع المندوب ونظام الدوام ===== -->
         <div class="card" id="driver-type-card" style="margin-top:8px; display:none;">
@@ -2058,6 +2112,30 @@
         window.open(`https://wa.me/966546083283?text=${msg}`);
     }
 
+    // [FIX-WAKE-LOCK] أفضل حل ممكن ضمن حدود متصفح الويب لتقليل انقطاع التتبع: إبقاء الشاشة مُضاءة
+    // طالما المندوب "متاح لاستقبال الطلبات" — لا يحل مشكلة التنقل لتطبيق آخر أو إغلاق الشاشة يدوياً
+    // (هذا قيد حقيقي من نظام التشغيل لا يمكن تجاوزه من صفحة ويب)، لكنه يحل أشيع سبب عملي للانقطاع:
+    // قفل الشاشة التلقائي التلقائي بعد فترة خمول قصيرة بينما الهاتف على حامل في المركبة
+    let _wakeLockObj = null;
+    async function _requestWakeLock() {
+        try {
+            if ('wakeLock' in navigator) {
+                _wakeLockObj = await navigator.wakeLock.request('screen');
+                _wakeLockObj.addEventListener('release', () => { _wakeLockObj = null; });
+            }
+        } catch(e) { /* غير مدعوم في هذا المتصفح — لا مشكلة، نتجاهل بصمت */ }
+    }
+    function _releaseWakeLock() {
+        try { if (_wakeLockObj) { _wakeLockObj.release(); _wakeLockObj = null; } } catch(e) {}
+    }
+    // [FIX-WAKE-LOCK] الـ Wake Lock يُحرَّر تلقائياً من المتصفح عند تصغير الصفحة أو تغيير التبويب —
+    // نطلبه من جديد فور الرجوع للصفحة طالما المندوب لا يزال "متاحاً"
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && localStorage.getItem('shaheen_work_status') === 'online') {
+            _requestWakeLock();
+        }
+    });
+
     async function toggleWorkStatus(status) {
         if (!currentUserData) return;
         const statusText = status ? 'online' : 'offline';
@@ -2067,6 +2145,12 @@
         
         await supabaseClient.from('sh_admin_tracking').upsert({ id: currentUserData.id, status: statusText });
         if (status) setTimeout(() => { try { startAdminTracking(); } catch(e) {} }, 300);
+
+        // [FIX-WAKE-LOCK] إبقاء الشاشة مُضاءة طالما المندوب "متاح" — هذا يحل أشيع سبب لانقطاع التتبع
+        // فعلياً (قفل الشاشة التلقائي بعد فترة خمول قصيرة بينما الجهاز موضوع على حامل في السيارة)،
+        // مع التنبيه الصادق أن هذا لا يحل انتقال المندوب لتطبيق آخر أو إغلاق الشاشة يدوياً (قيد حقيقي
+        // من نظام التشغيل نفسه، غير قابل للتجاوز من صفحة ويب عادية)
+        if (status) { _requestWakeLock(); } else { _releaseWakeLock(); }
 
         // [FIX-REALTIME-TOGGLE] إعادة بناء قناة الطلبات فور تفعيل الاستقبال
         // هذا يضمن وصول الطلبات فوراً بدون تحديث الصفحة
@@ -2806,6 +2890,7 @@
                 if(document.getElementById('work-status-checkbox')) document.getElementById('work-status-checkbox').checked = true;
                 if(document.getElementById('main-work-status-checkbox')) document.getElementById('main-work-status-checkbox').checked = true;
                 setTimeout(() => { try { startAdminTracking(); } catch(e) {} }, 500);
+                _requestWakeLock();
             } else {
                 if(document.getElementById('work-status-checkbox')) document.getElementById('work-status-checkbox').checked = false;
                 if(document.getElementById('main-work-status-checkbox')) document.getElementById('main-work-status-checkbox').checked = false;
@@ -4179,6 +4264,8 @@
         _dbgLine('استلمت الطلب: نتيجة الرسالة 2 = ' + ok2);
         _lockButtonsByStep(3);
         if (!ok1 && !ok2) siteNotify('⚠️ تم تسجيل المرحلة، لكن تعذّر إرسال إشعار للعميل');
+        // [NAV-AUTO-SWITCH] إن كانت صفحة الملاحة مفتوحة حالياً، نبدّل الوجهة فوراً للعميل بدون أي Refresh
+        try { _navSwitchToCustomerDestination(); } catch(e) {}
     }
 
     // [DRIVER-STATUS-MSG] الزر 4: وصول المندوب للعميل
@@ -5323,7 +5410,13 @@
 
             const updatePublicTask = supabaseClient.from('sh_public_orders').update({ status: 'completed', driver_stage: null, driver_step: 5, delivered_at: new Date().toISOString() }).eq('id', currentOrderID);
             const updateOrdersTask = supabaseClient.from('orders').update({ status: 'completed' }).eq('id', currentOrderID);
-            await Promise.all([updateBalanceTask, chargeLogTask, ledgerTask, updatePublicTask, updateOrdersTask]);
+            const [_resBal, _resChg, _resLedger, _resPub, _resOrd] = await Promise.all([updateBalanceTask, chargeLogTask, ledgerTask, updatePublicTask, updateOrdersTask]);
+            // [FIX-SILENT-LEDGER-FAIL] فحص ظاهر للخطأ بدل تجاهله بصمت — لو فشل تسجيل الأرباح المحاسبية
+            // (مثلاً بسبب عمود غير موجود في جدول ledger)، يجب أن يظهر تنبيه واضح وليس صمت كامل
+            if (_resLedger && _resLedger.error) {
+                console.error('ledger insert failed:', _resLedger.error);
+                siteNotify('⚠️ تنبيه للإدارة: فشل تسجيل أرباح هذا الطلب محاسبياً (' + (_resLedger.error.message || _resLedger.error.code || 'خطأ غير معروف') + ') — الطلب اكتمل لكن الأرباح لم تُسجَّل في كشف الحساب');
+            }
 
             // تحديث الأرقام التراكمية فوراً في الواجهة بعد إتمام الطلب
             await updateWalletUI();
@@ -5788,6 +5881,12 @@
 
     async function openMap(target) {
         if(!currentOrderID) return;
+        // [NAV-SYSTEM] فتح الملاحة الداخلية الكاملة داخل التطبيق بدل خرائط جوجل الخارجية
+        openNavigationPage(target === 'store' ? 'res' : target);
+    }
+
+    async function _legacyOpenMapGoogle(target) {
+        if(!currentOrderID) return;
         // ===== [FIX-POPUP-BLOCK] فتح النافذة فوراً قبل أي await لتجنب حجب المتصفح للنافذة المنبثقة =====
         const _aoNewTab = window.open('', '_blank');
         const { data: order } = await supabaseClient.from('sh_public_orders').select('*').eq('id', currentOrderID).single();
@@ -5837,7 +5936,395 @@
             if(_aoNewTab) { _aoNewTab.location.href = _aoFallbackUrl; } else { window.open(_aoFallbackUrl); }
         }
     }
-    
+
+    // ===========================================================================
+    // [NAV-SYSTEM] نظام الملاحة الداخلي الكامل — يستخدم Mapbox GL JS + Directions API
+    // ملاحظة صادقة: Mapbox Navigation SDK الرسمي (بصوت وتوجيه كامل كالتطبيقات الأصلية)
+    // متوفر فقط لتطبيقات iOS/Android الأصلية وليس للويب. هذا النظام مبني خصيصاً ليعطي
+    // أقرب تجربة ممكنة لذلك ضمن حدود الويب: التصاق بالطريق (Snap-to-Road) عبر إسقاط
+    // نقطة GPS على خط المسار، سهم دوّار حسب اتجاه الحركة الحقيقي، تعليمات نصّية تفصيلية
+    // مع اسم الشارع التالي، إعادة حساب تلقائية عند الانحراف، وتبديل الوجهة تلقائياً.
+    // ===========================================================================
+    mapboxgl.accessToken = 'pk.eyJ1IjoiZGZnaHJ0c2ZnaGoiLCJhIjoiY21xdTdtOXl6MHBhbDJzcXl1NnJiNDQ5ZyJ9.hjFDXHtLhfb_rnVbMcp7jQ';
+
+    let _navMap = null, _navMapReady = false, _navReadyQueue = [];
+    let _navCurrentTarget = null, _navCurrentDest = null, _navOrder = null;
+    let _navRoute = null;
+    let _navFollowMode = true;
+    let _navPollInterval = null;
+    let _navLastRawPos = null, _navMarkerCur = null, _navBearingCur = 0, _navAnimFrame = null;
+    let _navLastRerouteAt = 0, _navRerouting = false;
+
+    function _navHaversine(lat1, lng1, lat2, lng2) {
+        const R = 6371000;
+        const dLat = (lat2 - lat1) * Math.PI / 180, dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+    function _navBearingCalc(lat1, lng1, lat2, lng2) {
+        const y = Math.sin((lng2-lng1)*Math.PI/180) * Math.cos(lat2*Math.PI/180);
+        const x = Math.cos(lat1*Math.PI/180)*Math.sin(lat2*Math.PI/180) - Math.sin(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.cos((lng2-lng1)*Math.PI/180);
+        return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+    }
+    // إسقاط نقطة على قطعة مستقيمة (تحويل تقريبي مستوي مناسب لمسافات داخل المدينة)
+    function _navProjectPointOnSegment(lat, lng, lat1, lng1, lat2, lng2) {
+        const cosLat = Math.cos(lat1 * Math.PI / 180);
+        const toXY = (la, ln) => [ln * cosLat, la];
+        const [x, y] = toXY(lat, lng);
+        const [x1, y1] = toXY(lat1, lng1);
+        const [x2, y2] = toXY(lat2, lng2);
+        const dx = x2 - x1, dy = y2 - y1;
+        const lenSq = dx*dx + dy*dy;
+        let t = lenSq > 0 ? ((x-x1)*dx + (y-y1)*dy) / lenSq : 0;
+        t = Math.max(0, Math.min(1, t));
+        const px = x1 + t*dx, py = y1 + t*dy;
+        return { lat: py, lng: px / cosLat, t };
+    }
+    // أقرب نقطة على المسار الكامل + المسافة التراكمية عندها (هذا هو "الالتصاق بالطريق")
+    function _navProjectOntoRoute(lat, lng, route) {
+        let best = null;
+        const coords = route.coordinates;
+        for (let i = 0; i < coords.length - 1; i++) {
+            const [lng1, lat1] = coords[i], [lng2, lat2] = coords[i+1];
+            const proj = _navProjectPointOnSegment(lat, lng, lat1, lng1, lat2, lng2);
+            const d = _navHaversine(lat, lng, proj.lat, proj.lng);
+            if (!best || d < best.dist) {
+                const segLen = _navHaversine(lat1, lng1, lat2, lng2);
+                best = { dist: d, lat: proj.lat, lng: proj.lng, cumDistAtProj: route.cumDist[i] + segLen * proj.t, segIdx: i };
+            }
+        }
+        return best;
+    }
+
+    function _navMakeArrowIcon() {
+        const size = 64, scale = 3;
+        const canvas = document.createElement('canvas');
+        canvas.width = size * scale; canvas.height = size * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.scale(scale, scale);
+        ctx.beginPath(); ctx.arc(size/2, size/2, size/2 - 2, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(52,152,219,0.22)'; ctx.fill();
+        ctx.save();
+        ctx.translate(size/2, size/2);
+        ctx.beginPath();
+        ctx.moveTo(0, -size*0.32);
+        ctx.lineTo(size*0.22, size*0.22);
+        ctx.lineTo(0, size*0.10);
+        ctx.lineTo(-size*0.22, size*0.22);
+        ctx.closePath();
+        ctx.fillStyle = '#2980b9';
+        ctx.fill();
+        ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.stroke();
+        ctx.restore();
+        return ctx.getImageData(0, 0, canvas.width, canvas.height);
+    }
+    function _navOnMapReady(fn) {
+        if (_navMapReady) fn(); else _navReadyQueue.push(fn);
+    }
+    // ===== [LANDMARKS] جلب المعالم النشطة وعرضها على خريطة الملاحة =====
+    const _NAV_LM_EMOJI = { 'حي':'🏘️','دوار':'🔄','جامع':'🕌','مستشفى':'🏥','مدرسة':'🏫','جامعة':'🎓','سوق':'🛒','مطعم مشهور':'🍽️','حديقة':'🌳','جهة حكومية':'🏛️','أخرى':'📍' };
+    async function _navLoadLandmarks() {
+        try {
+            const { data } = await supabaseClient.from('custom_landmarks').select('name,type,lat,lng').eq('active', true);
+            const features = (data || []).map(l => ({
+                type: 'Feature',
+                properties: { name: l.name, emoji: _NAV_LM_EMOJI[l.type] || '📍' },
+                geometry: { type: 'Point', coordinates: [l.lng, l.lat] }
+            }));
+            const src = _navMap.getSource('shaheen-landmarks');
+            if (src) src.setData({ type: 'FeatureCollection', features });
+        } catch(e) { console.warn('nav landmarks load error', e); }
+    }
+    function _navEnsureMap(lat, lng) {
+        if (_navMap) return;
+        _navMap = new mapboxgl.Map({
+            container: 'nav-map', style: 'mapbox://styles/mapbox/navigation-night-v1',
+            center: [lng, lat], zoom: 16, attributionControl: false
+        });
+        const _doSetup = () => {
+            try {
+                if (!_navMap.hasImage('nav-arrow')) _navMap.addImage('nav-arrow', _navMakeArrowIcon(), { pixelRatio: 3 });
+                if (!_navMap.getSource('nav-route')) {
+                    _navMap.addSource('nav-route', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] } } });
+                    _navMap.addLayer({ id: 'nav-route-casing', type: 'line', source: 'nav-route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#0a3d1a', 'line-width': 9 } });
+                    _navMap.addLayer({ id: 'nav-route-line', type: 'line', source: 'nav-route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#2ecc71', 'line-width': 5 } });
+                    _navMap.addSource('nav-dest', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'Point', coordinates: [lng, lat] } } });
+                    _navMap.addLayer({ id: 'nav-dest-layer', type: 'circle', source: 'nav-dest', paint: { 'circle-radius': 9, 'circle-color': '#e74c3c', 'circle-stroke-width': 3, 'circle-stroke-color': '#fff' } });
+                    _navMap.addSource('nav-driver', { type: 'geojson', data: { type: 'Feature', properties: { bearing: 0 }, geometry: { type: 'Point', coordinates: [lng, lat] } } });
+                    _navMap.addLayer({ id: 'nav-driver-layer', type: 'symbol', source: 'nav-driver', layout: { 'icon-image': 'nav-arrow', 'icon-size': 0.7, 'icon-rotate': ['get', 'bearing'], 'icon-rotation-alignment': 'map', 'icon-allow-overlap': true } });
+                    // ===== [LANDMARKS] طبقة المعالم الخاصة بشاهين إكسبريس =====
+                    if (!_navMap.hasImage('nav-landmark-dot')) {
+                        const c = document.createElement('canvas'); c.width = 24; c.height = 24;
+                        const cx = c.getContext('2d');
+                        cx.beginPath(); cx.arc(12, 12, 6, 0, Math.PI*2);
+                        cx.fillStyle = '#f1c40f'; cx.fill();
+                        cx.lineWidth = 2; cx.strokeStyle = '#000'; cx.stroke();
+                        _navMap.addImage('nav-landmark-dot', cx.getImageData(0, 0, 24, 24), { pixelRatio: 2 });
+                    }
+                    _navMap.addSource('shaheen-landmarks', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+                    _navMap.addLayer({ id: 'shaheen-landmarks-layer', type: 'symbol', source: 'shaheen-landmarks', layout: {
+                        'text-field': ['concat', ['get', 'emoji'], ' ', ['get', 'name']],
+                        'text-size': 11, 'text-offset': [0, 0.6], 'text-anchor': 'top', 'text-allow-overlap': false,
+                        'icon-image': 'nav-landmark-dot', 'icon-size': 0.5, 'icon-allow-overlap': true
+                    }, paint: { 'text-color': '#f1c40f', 'text-halo-color': '#000', 'text-halo-width': 1.4 } });
+                    _navLoadLandmarks();
+                }
+                _navMapReady = true;
+                _navReadyQueue.forEach(fn => { try { fn(); } catch(e){} });
+                _navReadyQueue = [];
+                setTimeout(() => _navMap.resize(), 150);
+            } catch(e) { console.error('nav map setup error', e); }
+        };
+        if (_navMap.isStyleLoaded()) _doSetup();
+        _navMap.on('load', _doSetup);
+        _navMap.on('style.load', _doSetup);
+    }
+
+    async function _navFetchRoute(originLat, originLng, destLat, destLng) {
+        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${originLng},${originLat};${destLng},${destLat}?steps=true&geometries=geojson&overview=full&language=ar&access_token=${mapboxgl.accessToken}`;
+        try {
+            const resp = await fetch(url);
+            const data = await resp.json();
+            if (!data.routes || !data.routes.length) return null;
+            const route = data.routes[0];
+            const coords = route.geometry.coordinates;
+            let cum = [0];
+            for (let i = 1; i < coords.length; i++) {
+                cum.push(cum[i-1] + _navHaversine(coords[i-1][1], coords[i-1][0], coords[i][1], coords[i][0]));
+            }
+            const steps = (route.legs[0].steps || []).map(s => ({
+                instruction: s.maneuver.instruction, type: s.maneuver.type,
+                modifier: s.maneuver.modifier || '', name: s.name || '',
+                location: s.maneuver.location
+            }));
+            const r = { coordinates: coords, cumDist: cum, totalDist: route.distance, totalDuration: route.duration, steps };
+            r._stepCumDist = r.steps.map(s => _navProjectOntoRoute(s.location[1], s.location[0], r).cumDistAtProj);
+            return r;
+        } catch(e) { console.error('nav route fetch error', e); return null; }
+    }
+
+    function _navDrawRoute(route) {
+        _navOnMapReady(() => { const src = _navMap.getSource('nav-route'); if (src) src.setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: route.coordinates } }); });
+    }
+    function _navSetDestMarker(lat, lng) {
+        _navOnMapReady(() => { const src = _navMap.getSource('nav-dest'); if (src) src.setData({ type: 'Feature', geometry: { type: 'Point', coordinates: [lng, lat] } }); });
+    }
+    function _navManeuverIcon(modifier, type) {
+        if (type === 'arrive') return '<i class="fas fa-flag-checkered"></i>';
+        if (type === 'depart') return '<i class="fas fa-location-arrow"></i>';
+        if (!modifier) return '<i class="fas fa-arrow-up"></i>';
+        if (modifier.includes('right')) return '<i class="fas fa-arrow-right"></i>';
+        if (modifier.includes('left')) return '<i class="fas fa-arrow-left"></i>';
+        if (modifier === 'uturn') return '<i class="fas fa-undo"></i>';
+        return '<i class="fas fa-arrow-up"></i>';
+    }
+    function _navUpdateInstruction(curCumDist) {
+        if (!_navRoute || !_navRoute.steps.length) return;
+        let idx = _navRoute._stepCumDist.findIndex(d => d > curCumDist + 5);
+        if (idx === -1) idx = _navRoute.steps.length - 1;
+        const step = _navRoute.steps[idx];
+        const distToStep = Math.max(0, _navRoute._stepCumDist[idx] - curCumDist);
+        const elText = document.getElementById('nav-instruction-text');
+        const elStreet = document.getElementById('nav-instruction-street');
+        const elDist = document.getElementById('nav-instruction-dist');
+        const elIcon = document.getElementById('nav-maneuver-icon');
+        if (elText) elText.innerText = step.instruction || 'استمر بالمسار';
+        if (elStreet) elStreet.innerText = step.name ? ('في ' + step.name) : '—';
+        if (elDist) elDist.innerText = distToStep < 30 ? 'الآن' : (distToStep < 1000 ? Math.round(distToStep) + ' م' : (distToStep/1000).toFixed(1) + ' كم');
+        if (elIcon) elIcon.innerHTML = _navManeuverIcon(step.modifier, step.type);
+    }
+    function _navAnimateMarkerTo(lat, lng, bearing) {
+        _navOnMapReady(() => {
+            const from = _navMarkerCur || [lng, lat];
+            const fromBearing = _navBearingCur;
+            let diff = bearing - fromBearing;
+            while (diff > 180) diff -= 360;
+            while (diff < -180) diff += 360;
+            const targetBearing = fromBearing + diff;
+            const duration = 1400, start = performance.now();
+            if (_navAnimFrame) cancelAnimationFrame(_navAnimFrame);
+            function step(ts) {
+                const t = Math.min(1, (ts - start) / duration);
+                const curLng = from[0] + (lng - from[0]) * t;
+                const curLat = from[1] + (lat - from[1]) * t;
+                const curBearing = fromBearing + (targetBearing - fromBearing) * t;
+                const src = _navMap.getSource('nav-driver');
+                if (src) src.setData({ type: 'Feature', properties: { bearing: curBearing }, geometry: { type: 'Point', coordinates: [curLng, curLat] } });
+                if (t < 1) { _navAnimFrame = requestAnimationFrame(step); }
+                else { _navMarkerCur = [lng, lat]; _navBearingCur = ((targetBearing % 360) + 360) % 360; }
+            }
+            _navAnimFrame = requestAnimationFrame(step);
+        });
+    }
+    async function _navReroute(lat, lng) {
+        if (_navRerouting || !_navCurrentDest) return;
+        _navRerouting = true;
+        _navLastRerouteAt = Date.now();
+        const banner = document.getElementById('nav-rerouting-banner');
+        if (banner) banner.style.display = 'block';
+        const newRoute = await _navFetchRoute(lat, lng, _navCurrentDest.lat, _navCurrentDest.lng);
+        if (banner) banner.style.display = 'none';
+        if (newRoute) { _navRoute = newRoute; _navDrawRoute(newRoute); }
+        _navRerouting = false;
+    }
+    function _navHandlePosition(lat, lng) {
+        if (!_navRoute) return;
+        let bearing = _navBearingCur;
+        if (_navLastRawPos) {
+            const moved = _navHaversine(_navLastRawPos.lat, _navLastRawPos.lng, lat, lng);
+            if (moved > 2) bearing = _navBearingCalc(_navLastRawPos.lat, _navLastRawPos.lng, lat, lng);
+        }
+        _navLastRawPos = { lat, lng };
+
+        const proj = _navProjectOntoRoute(lat, lng, _navRoute);
+        const useSnap = proj.dist < 35; // التصاق بالطريق فقط إذا كان قريباً منه فعلاً
+        const showLat = useSnap ? proj.lat : lat, showLng = useSnap ? proj.lng : lng;
+        _navAnimateMarkerTo(showLat, showLng, bearing);
+
+        const remainingDist = Math.max(0, _navRoute.totalDist - proj.cumDistAtProj);
+        const remainingDuration = _navRoute.totalDuration * (remainingDist / _navRoute.totalDist);
+        const elEta = document.getElementById('nav-eta-value'), elDist = document.getElementById('nav-dist-value');
+        if (elEta) elEta.innerText = Math.max(1, Math.round(remainingDuration / 60)) + ' دقيقة';
+        if (elDist) elDist.innerText = remainingDist < 1000 ? Math.round(remainingDist) + ' م' : (remainingDist/1000).toFixed(1) + ' كم';
+        _navUpdateInstruction(proj.cumDistAtProj);
+
+        const sinceReroute = Date.now() - _navLastRerouteAt;
+        if (proj.dist > 50 && sinceReroute > 8000) _navReroute(lat, lng);
+        else if (sinceReroute > 60000) _navReroute(lat, lng); // تحديث دوري للدقة حتى بدون انحراف
+
+        if (_navFollowMode && _navMap) _navMap.easeTo({ center: [showLng, showLat], duration: 1200 });
+    }
+    function _navStartPositionFeed() {
+        if (_navPollInterval) clearInterval(_navPollInterval);
+        _navPollInterval = setInterval(() => {
+            if (window._lastKnownLat && window._lastKnownLng) _navHandlePosition(window._lastKnownLat, window._lastKnownLng);
+        }, 1500);
+    }
+    function _navStopPositionFeed() {
+        if (_navPollInterval) { clearInterval(_navPollInterval); _navPollInterval = null; }
+    }
+
+    // [NAV-RESOLVE] حل الوجهة بسلسلة احتياطية كاملة (نفس النمط المُثبَت في باقي النظام) — لا يعتمد فقط
+    // على ما هو محفوظ مباشرة على الطلب، بل يبحث في جدول المطعم/العميل ويحل روابط خرائط جوجل إن وُجدت
+    async function _navResolveDestination(target, order) {
+        if (target === 'customer') {
+            let lat = parseFloat(order.lat), lng = parseFloat(order.lng);
+            if (!lat || !lng) {
+                try {
+                    const { data: cust } = await supabaseClient.from('customers').select('lat,lng').eq('id', order.customer_id).maybeSingle();
+                    if (cust && cust.lat && cust.lng) { lat = parseFloat(cust.lat); lng = parseFloat(cust.lng); }
+                } catch(e) {}
+            }
+            return (lat && lng) ? { lat, lng } : null;
+        } else {
+            let lat = parseFloat(order.pickup_lat), lng = parseFloat(order.pickup_lng);
+            if ((!lat || !lng) && order.restaurant_id) {
+                try {
+                    const resTbl = (order.res_type === 'pharmacy' || order.res_type === 'pharmacy_delivery') ? 'pharmacies' : 'restaurants';
+                    const { data: resRow } = await supabaseClient.from(resTbl).select('pickup_lat,pickup_lng,maps_url').eq('id', order.restaurant_id).maybeSingle();
+                    if (resRow) {
+                        lat = parseFloat(resRow.pickup_lat); lng = parseFloat(resRow.pickup_lng);
+                        if ((!lat || !lng) && resRow.maps_url) {
+                            const resolved = await _resolveMapsUrlCoords(resRow.maps_url);
+                            if (resolved) {
+                                lat = resolved.lat; lng = resolved.lng;
+                                // تصحيح ذاتي: نحفظ الإحداثيات المُستخرجة بكل من جدول المطعم والطلب نفسه لتفادي إعادة الحل لاحقاً
+                                try { await supabaseClient.from(resTbl).update({ pickup_lat: lat, pickup_lng: lng }).eq('id', order.restaurant_id); } catch(e) {}
+                                try { await supabaseClient.from('sh_public_orders').update({ pickup_lat: lat, pickup_lng: lng }).eq('id', order.id); } catch(e) {}
+                            }
+                        }
+                    }
+                } catch(e) {}
+            }
+            return (lat && lng) ? { lat, lng } : null;
+        }
+    }
+
+    window.openNavigationPage = async function(target) {
+        if (!currentOrderID) return;
+        const { data: order } = await supabaseClient.from('sh_public_orders').select('*').eq('id', currentOrderID).single();
+        if (!order) { siteNotify('تعذّر جلب بيانات الطلب'); return; }
+        _navOrder = order;
+
+        siteNotify(target === 'customer' ? '⏳ جاري تحديد موقع العميل...' : '⏳ جاري تحديد موقع المطعم...');
+        const resolved = await _navResolveDestination(target, order);
+        if (!resolved) {
+            siteNotify(target === 'customer' ? '⚠️ موقع العميل غير متوفر بإحداثيات دقيقة في أي مصدر (الطلب أو حساب العميل) — استخدم العنوان النصي' : '⚠️ موقع المطعم غير متوفر بإحداثيات دقيقة في أي مصدر (الطلب أو ملف المطعم أو رابط الخريطة)');
+            return;
+        }
+        let destLat = resolved.lat, destLng = resolved.lng, destLabel, destIcon;
+        if (target === 'customer') { destLabel = 'متجه إلى العميل'; destIcon = '🏠'; }
+        else { destLabel = 'متجه إلى المطعم'; destIcon = '🏪'; }
+        _navCurrentTarget = target;
+        _navCurrentDest = { lat: destLat, lng: destLng };
+        document.getElementById('nav-destination-label').innerText = destLabel;
+        document.getElementById('nav-destination-icon').innerText = destIcon;
+
+        const startLat = window._lastKnownLat || destLat;
+        const startLng = window._lastKnownLng || destLng;
+
+        document.getElementById('nav-page').style.display = 'block';
+        _navEnsureMap(startLat, startLng);
+        _navOnMapReady(() => setTimeout(() => _navMap.resize(), 100));
+
+        document.getElementById('nav-instruction-text').innerText = 'جاري تحديد المسار...';
+        const route = await _navFetchRoute(startLat, startLng, destLat, destLng);
+        if (!route) { siteNotify('⚠️ تعذّر رسم المسار حالياً، تحقق من الاتصال'); return; }
+        _navRoute = route;
+        _navLastRerouteAt = Date.now();
+        _navDrawRoute(route);
+        _navSetDestMarker(destLat, destLng);
+        _navOnMapReady(() => {
+            try {
+                _navMap.fitBounds([
+                    [Math.min(startLng, destLng) - 0.003, Math.min(startLat, destLat) - 0.003],
+                    [Math.max(startLng, destLng) + 0.003, Math.max(startLat, destLat) + 0.003]
+                ], { padding: 80, maxZoom: 17, duration: 0 });
+            } catch(e) {}
+        });
+        _navFollowMode = true;
+        _navStartPositionFeed();
+    };
+
+    window.closeNavigationPage = function() {
+        document.getElementById('nav-page').style.display = 'none';
+        _navStopPositionFeed();
+        if (_navAnimFrame) cancelAnimationFrame(_navAnimFrame);
+    };
+
+    window._navRecenter = function() {
+        _navFollowMode = true;
+        if (_navMarkerCur && _navMap) _navMap.easeTo({ center: _navMarkerCur, zoom: 17, duration: 600 });
+    };
+
+    // [NAV-AUTO-SWITCH] تبديل الوجهة تلقائياً من المطعم للعميل بمجرد ضغط "استلمت الطلب" — بدون أي
+    // إعادة فتح للصفحة أو Refresh، طالما صفحة الملاحة مفتوحة فعلياً في تلك اللحظة
+    async function _navSwitchToCustomerDestination() {
+        if (document.getElementById('nav-page').style.display !== 'block') return; // الملاحة غير مفتوحة حالياً
+        try {
+            const { data: freshOrder } = await supabaseClient.from('sh_public_orders').select('*').eq('id', currentOrderID).maybeSingle();
+            if (!freshOrder) return;
+            const resolved = await _navResolveDestination('customer', freshOrder);
+            if (!resolved) { siteNotify('⚠️ موقع العميل غير متوفر للملاحة التلقائية في أي مصدر — يُرجى إغلاق الملاحة واستخدام العنوان النصي'); return; }
+            _navCurrentTarget = 'customer';
+            _navCurrentDest = resolved;
+            document.getElementById('nav-destination-label').innerText = 'متجه إلى العميل';
+            document.getElementById('nav-destination-icon').innerText = '🏠';
+            document.getElementById('nav-instruction-text').innerText = 'جاري تحديد مسار جديد للعميل...';
+            const lat = window._lastKnownLat || _navCurrentDest.lat;
+            const lng = window._lastKnownLng || _navCurrentDest.lng;
+            const newRoute = await _navFetchRoute(lat, lng, _navCurrentDest.lat, _navCurrentDest.lng);
+            if (newRoute) {
+                _navRoute = newRoute;
+                _navLastRerouteAt = Date.now();
+                _navDrawRoute(newRoute);
+                _navSetDestMarker(_navCurrentDest.lat, _navCurrentDest.lng);
+                siteNotify('🏠 تم تحديث الملاحة تلقائياً نحو العميل');
+            }
+        } catch(e) { console.error('nav auto-switch error', e); }
+    }
+    // ===== نهاية [NAV-SYSTEM] =====
+
     // ===== FIX-TG-3: دالة فتح قناة التيليجرام للمندوب (خارجياً موثوق) =====
     // FIX-TG-PERSIST: استعادة رابط التيليجرام من localStorage فور التحميل
     let _driverTgUrl = localStorage.getItem('shaheen_tg_channel') || '';
