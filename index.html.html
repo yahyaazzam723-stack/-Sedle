@@ -6194,13 +6194,46 @@
 
         if (_navFollowMode && _navMap) _navMap.easeTo({ center: [showLng, showLat], duration: 1200 });
     }
+    let _navOwnWatchId = null;
     function _navStartPositionFeed() {
+        // [FIX-NAV-LIVE-GPS] مراقبة موقع مستقلة وخاصة بصفحة الملاحة فقط — لا تعتمد على نظام تتبع
+        // "متاح للعمل" العام (الذي قد لا يكون فعّالاً وقت فتح الملاحة)، فتضمن عمل الملاحة دائماً
+        // بغض النظر عن أي حالة أخرى في التطبيق
+        if (_navOwnWatchId !== null) { try { navigator.geolocation.clearWatch(_navOwnWatchId); } catch(e) {} _navOwnWatchId = null; }
+        if (!navigator.geolocation) { console.error('[NAV-GPS] navigator.geolocation غير متاح في هذا المتصفح'); return; }
+        _navOwnWatchId = navigator.geolocation.watchPosition(
+            (pos) => {
+                const lat = pos.coords.latitude, lng = pos.coords.longitude;
+                // [FIX-NAV-LIVE-GPS] تحديث المتغيّرات العامة أيضاً — يستفيد منها باقي النظام (إرسال الموقع
+                // العام لقاعدة البيانات) من نفس قراءة GPS الحية، بدون ازدواج غير ضروري لطلبات الموقع
+                window._lastKnownLat = lat; window._lastKnownLng = lng;
+                window._lastKnownAccuracy = pos.coords.accuracy;
+                window._lastKnownHeading  = pos.coords.heading || 0;
+                window._lastKnownSpeed    = pos.coords.speed || 0;
+                _navHandlePosition(lat, lng);
+                // [FIX-NAV-LIVE-GPS] إرسال مباشر إلى قاعدة البيانات أيضاً — يضمن أن العميل والإدارة يريان
+                // الحركة حتى لو لم يكن نظام التتبع العام (متاح للعمل) يعمل لأي سبب في هذه اللحظة
+                if (currentUserData && currentUserData.id) {
+                    supabaseClient.from('sh_admin_tracking').upsert({
+                        id: currentUserData.id, lat: lat, lng: lng,
+                        accuracy: pos.coords.accuracy, speed: pos.coords.speed || 0, heading: pos.coords.heading || 0,
+                        last_seen: new Date().toISOString(), last_update: new Date().toISOString(),
+                        name: currentUserData.name, active_order_id: currentOrderID || null
+                    }).then(({ error }) => { if (error) console.error('[NAV-GPS] فشل إرسال الموقع المباشر لقاعدة البيانات:', error); });
+                }
+            },
+            (err) => { console.error('[NAV-GPS] خطأ في مراقبة الموقع لصفحة الملاحة:', err.code, err.message); },
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+        );
+        // [FIX-NAV-LIVE-GPS] احتياط إضافي: استطلاع كل 3 ثوانٍ في حال فشل watchPosition بصمت على بعض
+        // الأجهزة/المتصفحات (مشكلة معروفة في بعض WebViews القديمة)
         if (_navPollInterval) clearInterval(_navPollInterval);
         _navPollInterval = setInterval(() => {
             if (window._lastKnownLat && window._lastKnownLng) _navHandlePosition(window._lastKnownLat, window._lastKnownLng);
-        }, 1500);
+        }, 3000);
     }
     function _navStopPositionFeed() {
+        if (_navOwnWatchId !== null) { try { navigator.geolocation.clearWatch(_navOwnWatchId); } catch(e) {} _navOwnWatchId = null; }
         if (_navPollInterval) { clearInterval(_navPollInterval); _navPollInterval = null; }
     }
 
