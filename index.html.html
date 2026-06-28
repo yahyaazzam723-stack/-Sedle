@@ -2452,6 +2452,9 @@
         } catch (_mdCheckErr) { /* تجاهل خطأ الفحص والمتابعة */ }
         // [END-MULTI-DEVICE-BLOCK]
         currentUserData = { ...driver, id: driver.id };
+        // [FIX-HIDE-DEMO-AFTER-LOGIN] إخفاء زر العرض التوضيحي نهائياً بعد تسجيل دخول مندوب حقيقي —
+        // كان يبقى ظاهراً فوق الشاشة حتى بعد تسجيل الدخول، وهذا غير مقصود
+        try { const _demoBtn = document.getElementById('demo-launch-btn'); if (_demoBtn) _demoBtn.style.display = 'none'; } catch(e) {}
         // [REMEMBER-ME] حفظ البيانات حسب خيار "تذكرني"
         const _rememberMeChecked = document.getElementById('remember-me-checkbox') && document.getElementById('remember-me-checkbox').checked;
         localStorage.setItem('shaheen_driver', JSON.stringify(currentUserData));
@@ -2515,6 +2518,8 @@
         const saved = localStorage.getItem('shaheen_driver');
         if(saved) {
             currentUserData = JSON.parse(saved);
+            // [FIX-HIDE-DEMO-AFTER-LOGIN] نفس الإصلاح — إخفاء الزر عند استعادة جلسة محفوظة أيضاً
+            try { const _demoBtn2 = document.getElementById('demo-launch-btn'); if (_demoBtn2) _demoBtn2.style.display = 'none'; } catch(e) {}
             // [MULTI-DEVICE-SESSION-CHECK] تحقق فوري أن معرف الجهاز المخزن في DB يطابق الجهاز الحالي
             // إذا سُرقت البيانات من localStorage ونُقلت لجهاز آخر، يتم الطرد فوراً
             setTimeout(async () => {
@@ -8630,6 +8635,9 @@ ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS active_device_id text DEFAUL
   }
 
   window.__startShaheenDemo = function() { runDemo(); };
+  // [FIX-HIDE-DEMO-AFTER-LOGIN] فحص مضمون التنفيذ هنا — هذا الكود يُنفَّذ بعد تحميل زر العرض التوضيحي
+  // مباشرة في الصفحة، فإن كان هناك مندوب مسجَّل دخوله مسبقاً (currentUserData) نخفي الزر فوراً
+  try { if (typeof currentUserData !== 'undefined' && currentUserData) document.getElementById('demo-launch-btn').style.display = 'none'; } catch(e) {}
   window.__replayShaheenDemo = function() {
     document.getElementById('demo-end-screen').classList.remove('show');
     nav('p-auth');
