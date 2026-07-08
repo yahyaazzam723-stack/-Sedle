@@ -370,6 +370,9 @@
         <i class="fas fa-location-arrow"></i>
     </button>
 
+    <!-- [NAV-GPS-DEBUG] شريط تشخيصي مؤقت — يعرض آخر إحداثيات حقيقية ووقت آخر تحديث، لمعرفة هل GPS يتحرك فعلاً -->
+    <div id="nav-gps-debug-line" style="position:absolute; bottom:135px; left:14px; right:14px; z-index:10; background:rgba(0,0,0,0.75); color:#0f0; font-size:9.5px; padding:5px 8px; border-radius:6px; text-align:center; direction:ltr; font-family:monospace;"></div>
+
     <!-- بطاقة الوجهة + ETA + المسافة السفلية -->
     <div style="position:absolute; bottom:0; left:0; right:0; z-index:10; background:linear-gradient(to top, rgba(10,10,10,0.97), rgba(10,10,10,0.85)); padding:14px 16px 20px; border-top:1px solid rgba(255,255,255,0.1);">
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
@@ -519,6 +522,11 @@
         <button id="notif-allow-btn" onclick="_requestNotifNow()" style="width:100%; background:var(--gold); color:#000; border:none; padding:16px; border-radius:14px; font-size:15px; font-weight:bold; cursor:pointer; margin-bottom:10px; box-shadow:0 4px 20px rgba(212,175,55,0.4);">
             <i class="fas fa-bell"></i> السماح بالإشعارات الآن
         </button>
+        <!-- [FIX-NOTIF-REPEAT-ANNOYING] زر تجاوز — يخفي هذه الشاشة فوراً ولا تظهر مرة أخرى تلقائياً
+             خلال هذه الجلسة (ولا لمدة يوم كامل حتى بعد إعادة فتح التطبيق) -->
+        <button onclick="_dismissNotifModal()" style="width:100%; background:transparent; color:#888; border:1px solid #444; padding:12px; border-radius:14px; font-size:12px; cursor:pointer; margin-bottom:10px;">
+            لاحقاً
+        </button>
         <p id="notif-status-text" style="color:#888; font-size:10px; margin:0;"></p>
     </div>
     <!-- ===== [END-NOTIF-MODAL] ===== -->
@@ -641,6 +649,34 @@
         </div>
     </div>
     <!-- ===== نهاية مودال تأكيد تسجيل الخروج ===== -->
+
+    <!-- ===== [INVOICE-REVISION] مودال طلب تعديل فاتورة المطعم ===== -->
+    <div id="invoice-revision-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999999; display:none; flex-direction:column; justify-content:center; align-items:center; padding:24px; text-align:center; backdrop-filter:blur(8px);">
+        <div style="background:var(--glass); border:2px solid rgba(155,89,182,0.5); border-radius:20px; padding:22px; width:92%; max-width:380px; text-align:right; max-height:88vh; overflow-y:auto;">
+            <div style="text-align:center;">
+                <i class="fas fa-file-invoice-dollar" style="font-size:32px; color:#9b59b6; margin-bottom:10px; display:block;"></i>
+                <h3 style="color:#fff; font-size:15px; margin:0 0 6px;">طلب تعديل فاتورة المطعم</h3>
+                <p style="color:#aaa; font-size:10.5px; line-height:1.6; margin:0 0 14px;">يُرسل هذا طلباً للعميل للموافقة على فاتورة المطعم الجديدة فقط — <b style="color:#f39c12;">سعر التوصيل لا يتأثر إطلاقاً</b> ولا يمكن تعديله من هنا.</p>
+            </div>
+            <div style="background:rgba(255,255,255,0.05); border-radius:10px; padding:10px; margin-bottom:12px; font-size:11.5px;">
+                <span style="color:#aaa;">قيمة فاتورة المطعم الحالية:</span>
+                <b id="inv-rev-old-amount" style="color:var(--gold); display:block; font-size:16px; margin-top:4px;">-- ل.س</b>
+            </div>
+            <label style="font-size:11px; color:var(--gold); display:block; margin-bottom:5px;">قيمة فاتورة المطعم الجديدة (ل.س)</label>
+            <input type="number" id="inv-rev-new-amount" placeholder="مثال: 60000" style="width:100%; box-sizing:border-box; background:var(--p-dark); color:#fff; border:1px solid #9b59b6; padding:10px; border-radius:8px; margin-bottom:10px;">
+            <label style="font-size:11px; color:var(--gold); display:block; margin-bottom:5px;">سبب التعديل (اختياري لكنه يساعد العميل على الموافقة سريعاً)</label>
+            <textarea id="inv-rev-reason" rows="3" placeholder="مثال: تغيّر سعر الوجبة في المطعم، أو أُضيف صنف بطلب العميل..." style="width:100%; box-sizing:border-box; background:var(--p-dark); color:#fff; border:1px solid #9b59b6; padding:10px; border-radius:8px; margin-bottom:14px; resize:vertical;"></textarea>
+            <div style="display:flex; gap:10px;">
+                <button onclick="closeInvoiceRevisionModal()" style="flex:1; background:rgba(255,255,255,0.05); border:1px solid #555; color:#aaa; padding:12px; border-radius:10px; font-size:12px; cursor:pointer;">
+                    <i class="fas fa-times"></i> إلغاء
+                </button>
+                <button id="inv-rev-submit-btn" onclick="submitInvoiceRevisionRequest()" style="flex:1; background:rgba(155,89,182,0.25); border:1px solid #9b59b6; color:#cc99e6; padding:12px; border-radius:10px; font-size:12px; font-weight:bold; cursor:pointer;">
+                    <i class="fas fa-paper-plane"></i> إرسال للعميل
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- ===== نهاية مودال طلب تعديل الفاتورة ===== -->
 
     <!-- ===== مودال تسجيل دخول من جهاز جديد ===== -->
     <div id="new-device-modal" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:50000; display:none; flex-direction:column; justify-content:center; align-items:center; padding:24px; text-align:center; border-radius:inherit; backdrop-filter:blur(8px);">
@@ -1032,29 +1068,9 @@
             </div>
         </div>
         <!-- ===== نهاية كرت أرباح المندوب ===== -->
-        <!-- ===== بطاقة بيانات الحساب (الإيميل والجوال) ===== -->
-        <div class="card" style="margin-bottom:8px; background:rgba(212,175,55,0.04); border:1px solid rgba(212,175,55,0.2);">
-            <h4 style="color:var(--gold); margin:0 0 8px; font-size:12px;"><i class="fas fa-id-badge"></i> بيانات حسابي</h4>
-            <div style="display:flex; flex-direction:column; gap:6px; font-size:11px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(212,175,55,0.1); padding-bottom:6px;">
-                    <span style="color:#888;"><i class="fas fa-user" style="color:var(--gold); width:14px;"></i> الاسم</span>
-                    <b id="profile-info-name" style="color:#fff;">—</b>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(212,175,55,0.1); padding-bottom:6px;">
-                    <span style="color:#888;"><i class="fas fa-phone" style="color:var(--gold); width:14px;"></i> الجوال</span>
-                    <b id="profile-info-phone" style="color:#fff; direction:ltr;">—</b>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(212,175,55,0.1); padding-bottom:6px;">
-                    <span style="color:#888;"><i class="fas fa-envelope" style="color:var(--gold); width:14px;"></i> الإيميل</span>
-                    <b id="profile-info-email" style="color:#3498db; font-size:10px; word-break:break-all; text-align:left; direction:ltr; max-width:60%;">—</b>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color:#888;"><i class="fas fa-car" style="color:var(--gold); width:14px;"></i> المركبة</span>
-                    <b id="profile-info-vehicle" style="color:#fff;">—</b>
-                </div>
-            </div>
-        </div>
-        <!-- ===== نهاية بطاقة بيانات الحساب ===== -->
+        <button class="btn-gold" style="background:rgba(52,152,219,0.12); color:#3498db; border:1px solid #3498db; margin-bottom:10px; font-size:12px; font-weight:bold;" onclick="nav('p-driver-info')">
+            <i class="fas fa-id-card"></i> 👤 معلومات المندوب
+        </button>
         <div class="card" style="background: rgba(255,255,255,0.02);">
             <div class="work-toggle" style="background: transparent; border: none; padding: 0;">
                 <span style="font-size: 11px; font-weight: bold; color: var(--gold);"><i class="fas fa-power-off"></i> حالة التوفر</span>
@@ -1156,6 +1172,57 @@
             <!-- [END-WA-CHANNEL] -->
         </div>
         <!-- ===== نهاية قسم التواصل ===== -->
+        <button class="btn-gold" style="background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: 1px solid rgba(231, 76, 60, 0.3); margin-top: 15px; font-size: 10px;" onclick="localStorage.removeItem('shaheen_driver'); localStorage.removeItem('shaheen_driver_remember'); localStorage.removeItem('shaheen_work_status'); location.reload();"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج من النظام</button>
+    </div>
+
+    <div id="p-driver-info" class="page">
+        <h2 style="color:var(--gold); text-align:center; font-size:16px;"><i class="fas fa-id-card"></i> معلومات المندوب 👤</h2>
+        <p style="color:#aaa; font-size:10px; text-align:center; margin-bottom:14px;">جميع بياناتك ومستنداتك المسجَّلة في مكان واحد</p>
+        <!-- ===== بطاقة بيانات الحساب (الإيميل والجوال) ===== -->
+        <div class="card" style="margin-bottom:8px; background:rgba(212,175,55,0.04); border:1px solid rgba(212,175,55,0.2);">
+            <h4 style="color:var(--gold); margin:0 0 8px; font-size:12px;"><i class="fas fa-id-badge"></i> بيانات حسابي</h4>
+            <div style="display:flex; flex-direction:column; gap:6px; font-size:11px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(212,175,55,0.1); padding-bottom:6px;">
+                    <span style="color:#888;"><i class="fas fa-user" style="color:var(--gold); width:14px;"></i> الاسم</span>
+                    <b id="profile-info-name" style="color:#fff;">—</b>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(212,175,55,0.1); padding-bottom:6px;">
+                    <span style="color:#888;"><i class="fas fa-phone" style="color:var(--gold); width:14px;"></i> الجوال</span>
+                    <b id="profile-info-phone" style="color:#fff; direction:ltr;">—</b>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(212,175,55,0.1); padding-bottom:6px;">
+                    <span style="color:#888;"><i class="fas fa-envelope" style="color:var(--gold); width:14px;"></i> الإيميل</span>
+                    <b id="profile-info-email" style="color:#3498db; font-size:10px; word-break:break-all; text-align:left; direction:ltr; max-width:60%;">—</b>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#888;"><i class="fas fa-car" style="color:var(--gold); width:14px;"></i> المركبة</span>
+                    <b id="profile-info-vehicle" style="color:#fff;">—</b>
+                </div>
+            </div>
+        </div>
+        <!-- ===== نهاية بطاقة بيانات الحساب ===== -->
+        <!-- [FIX-CONTRACT-EXTRA-FIELDS] بيانات إضافية مطلوبة لعقد العمل الرسمي — تُحفظ مرة واحدة وتُستخدم
+             تلقائياً في تعبئة العقد بدل تركها فارغة في كل مرة يُفتح فيها -->
+        <div class="card" style="background: rgba(255,255,255,0.02);">
+            <div style="font-size:11px; font-weight:bold; color:var(--gold); margin-bottom:10px;"><i class="fas fa-file-signature"></i> بيانات إضافية لعقد العمل</div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                <input type="text" id="cf-id-number" class="auth-input" placeholder="رقم الهوية / الإقامة" style="height:38px; font-size:11px;">
+                <input type="text" id="cf-birthdate" class="auth-input" placeholder="تاريخ الميلاد (مثلاً: 01/01/1995)" style="height:38px; font-size:11px;">
+                <input type="text" id="cf-address" class="auth-input" placeholder="العنوان بالتفصيل" style="height:38px; font-size:11px;">
+                <input type="text" id="cf-vehicle-model" class="auth-input" placeholder="موديل المركبة (مثلاً: هوندا 2020)" style="height:38px; font-size:11px;">
+                <input type="text" id="cf-vehicle-color" class="auth-input" placeholder="لون المركبة" style="height:38px; font-size:11px;">
+                <input type="text" id="cf-vehicle-plate" class="auth-input" placeholder="رقم لوحة المركبة" style="height:38px; font-size:11px;">
+                <input type="text" id="cf-license-num" class="auth-input" placeholder="رقم رخصة القيادة" style="height:38px; font-size:11px;">
+                <button class="btn-gold" style="height:40px; font-size:11.5px;" onclick="saveContractExtraFields()"><i class="fas fa-save"></i> حفظ البيانات</button>
+            </div>
+        </div>
+        <!-- [FIX-DRIVER-INFO-CITY] المدينة/المحافظة المسجَّلة عند التسجيل -->
+        <div class="card" style="margin-bottom:8px; background:rgba(212,175,55,0.04); border:1px solid rgba(212,175,55,0.2);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="color:#888; font-size:11px;"><i class="fas fa-map-marker-alt" style="color:var(--gold); width:14px;"></i> المدينة</span>
+                <b id="profile-info-city" style="color:#fff; font-size:11px;">—</b>
+            </div>
+        </div>
         <!-- ===== قسم وثائقي المرفوعة ===== -->
         <div class="card" style="margin-top:8px;" id="my-docs-card">
             <h4 style="color:var(--gold); margin-top:0; font-size:12px;"><i class="fas fa-file-upload"></i> وثائقي المرفوعة</h4>
@@ -1171,10 +1238,9 @@
             <button class="btn-gold" style="background:rgba(46,204,113,0.15); color:#2ecc71; border:1px solid #2ecc71; font-size:10px; margin-bottom:6px;" onclick="openContractForm('create')"><i class="fas fa-file-signature"></i> عرض عقد العمل</button>
             <button class="btn-gold" style="background:rgba(231,76,60,0.15); color:#e74c3c; border:1px solid #e74c3c; font-size:10px;" onclick="sendTerminationRequest()"><i class="fas fa-file-times"></i> فسخ عقد / إنهاء خدمة</button>
         </div>
-        <button class="btn-gold" style="background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: 1px solid rgba(231, 76, 60, 0.3); margin-top: 15px; font-size: 10px;" onclick="localStorage.removeItem('shaheen_driver'); localStorage.removeItem('shaheen_driver_remember'); localStorage.removeItem('shaheen_work_status'); location.reload();"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج من النظام</button>
     </div>
-
     <div id="p-active-order" class="page">
+
         <div style="display:flex; align-items:center; gap:6px;">
             <i class="fas fa-arrow-right" onclick="nav('p-main')" style="color:var(--gold); font-size: 14px;"></i>
             <h3 id="active-res-name" style="margin:0; font-size: 14px;">تجهيز الطلب</h3>
@@ -1185,11 +1251,17 @@
 
         <div id="active-bill-info" style="font-size: 9px; margin-top:6px; color:#aaa; background: rgba(212, 175, 55, 0.05); padding: 6px; border-radius: 8px;"></div>
 
-        <!-- [DRIVER-STATUS-MSG] أزرار تحديث حالة الطلب — كل زر يرسل رسالة ثابتة فورية للعميل -->
+        <!-- [DRIVER-STATUS-MSG] شريط سحب لتحديث حالة الطلب — يتبدّل شكله ولونه تلقائياً مع كل مرحلة -->
         <div id="status-update-buttons" style="margin-top:8px;">
-            <button id="btn-unified-status" class="btn-gold" style="width:100%; height:40px; font-size:12px; font-weight:bold; background:#2980b9; color:#fff; border:1px solid #3498db; border-radius:10px;" onclick="handleUnifiedStatusClick()">
-                <i class="fas fa-store"></i> وصلت المطعم 🏪
-            </button>
+            <div id="unified-status-swipe-track" class="swipe-slider-track" data-swipe-action="unified-status" data-step="0" style="position:relative; width:100%; height:50px; background:rgba(0,0,0,0.35); border-radius:25px; overflow:hidden; border:1px solid #3498db; touch-action:none; user-select:none;">
+                <div id="unified-status-swipe-label" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; font-weight:bold; pointer-events:none;">
+                    <i class="fas fa-store"></i>&nbsp; وصلت المطعم 🏪
+                </div>
+                <div class="swipe-slider-fill" style="position:absolute; top:0; right:0; height:100%; width:0; background:rgba(255,255,255,0.18); pointer-events:none;"></div>
+                <div class="swipe-slider-handle" style="position:absolute; top:2px; left:2px; width:46px; height:46px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.4); z-index:2; cursor:grab;">
+                    <i class="fas fa-chevron-right" id="unified-status-swipe-icon-color" style="color:#2980b9; font-size:16px;"></i>
+                </div>
+            </div>
             <div id="unified-debug-line" style="display:none;"></div>
         </div>
         <!-- أزرار قديمة مخفية — أُبقيت لتوافق الكود الداخلي (الدوال نفسها) دون استخدامها بصرياً -->
@@ -1221,6 +1293,14 @@
             <button class="btn-gold" style="background:#f39c12; color:#fff; font-size:8px;" onclick="openAdminChat()"><i class="fas fa-headset"></i> الإدارة</button>
         </div>
         <!-- ===== نهاية أزرار الموقع ===== -->
+
+        <!-- ===== [INVOICE-REVISION] طلب تعديل فاتورة المطعم ===== -->
+        <div id="invoice-revision-btn-container" style="margin-bottom:6px;">
+            <button id="btn-invoice-revision" class="btn-gold" style="width:100%; background:#9b59b6; color:#fff; font-size:10.5px; height:36px; border:1px solid #8e44ad;" onclick="openInvoiceRevisionModal()">
+                <i class="fas fa-edit"></i> طلب تعديل فاتورة المطعم
+            </button>
+            <div id="invoice-revision-status-line" style="display:none; font-size:9.5px; color:#f39c12; text-align:center; margin-top:4px;"></div>
+        </div>
 
         <div class="chat-area">
             <div id="chat-content" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 12px;">
@@ -2105,6 +2185,96 @@
         setTimeout(() => n.classList.remove('show'), 3500);
     }
 
+    // ===========================================================================
+    // [INVOICE-REVISION] نظام طلب تعديل فاتورة المطعم — يتطلب موافقة العميل أو الإدارة
+    // ===========================================================================
+    let _invRevCurrentOrderTotal = 0, _invRevCurrentDeliveryFee = 0, _invRevCurrentOldAmount = 0;
+
+    async function openInvoiceRevisionModal() {
+        if (!currentOrderID) return;
+        try {
+            // [INVOICE-REVISION] منع وجود أكثر من طلب تعديل واحد معلَّق على نفس الطلب في نفس الوقت
+            const { data: pending } = await supabaseClient.from('invoice_revision_requests')
+                .select('id').eq('order_id', String(currentOrderID)).eq('status', 'pending').maybeSingle();
+            if (pending) { siteNotify('⚠️ يوجد طلب تعديل فاتورة معلَّق بالفعل بانتظار رد العميل — لا يمكن إرسال طلب آخر حتى ينتهي'); return; }
+
+            const { data: order } = await supabaseClient.from('sh_public_orders').select('total,delivery_price').eq('id', currentOrderID).maybeSingle();
+            if (!order) return;
+            _invRevCurrentOrderTotal = parseFloat(order.total) || 0;
+            _invRevCurrentDeliveryFee = parseFloat(order.delivery_price) || 0;
+            // فاتورة المطعم = الإجمالي - سعر التوصيل (سعر التوصيل لا يتغيّر أبداً بهذا النظام)
+            _invRevCurrentOldAmount = Math.max(0, _invRevCurrentOrderTotal - _invRevCurrentDeliveryFee);
+
+            document.getElementById('inv-rev-old-amount').innerText = _invRevCurrentOldAmount.toLocaleString() + ' ل.س';
+            document.getElementById('inv-rev-new-amount').value = '';
+            document.getElementById('inv-rev-reason').value = '';
+            document.getElementById('invoice-revision-modal').style.display = 'flex';
+        } catch(e) { console.error('[INVOICE-REVISION] خطأ أثناء فتح نافذة التعديل:', e); siteNotify('⚠️ تعذّر فتح نافذة تعديل الفاتورة، حاول مجدداً'); }
+    }
+    function closeInvoiceRevisionModal() { document.getElementById('invoice-revision-modal').style.display = 'none'; }
+
+    async function submitInvoiceRevisionRequest() {
+        console.log('[INVOICE-REVISION] تم الضغط على زر الإرسال — بدء التنفيذ');
+        try {
+            const newAmount = parseFloat(document.getElementById('inv-rev-new-amount').value);
+            const reason = document.getElementById('inv-rev-reason').value.trim();
+            if (isNaN(newAmount) || newAmount <= 0) { siteNotify('⚠️ اكتب قيمة فاتورة صحيحة أولاً'); return; }
+            if (newAmount === _invRevCurrentOldAmount) { siteNotify('⚠️ القيمة الجديدة مطابقة للقيمة الحالية — لا حاجة لإرسال طلب'); return; }
+            if (!currentOrderID) { siteNotify('⚠️ تعذّر تحديد الطلب الحالي، أعد فتح الطلب وحاول من جديد'); return; }
+
+            const btn = document.getElementById('inv-rev-submit-btn');
+            btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإرسال...';
+            console.log('[INVOICE-REVISION] جاري الإدخال:', { order_id: String(currentOrderID), old: _invRevCurrentOldAmount, new: newAmount });
+
+            const { data: insertedRow, error } = await supabaseClient.from('invoice_revision_requests').insert([{
+                order_id: String(currentOrderID),
+                driver_id: currentUserData ? String(currentUserData.id) : null,
+                driver_name: currentUserData ? currentUserData.name : null,
+                old_amount: _invRevCurrentOldAmount,
+                new_amount: newAmount,
+                reason: reason || null,
+                status: 'pending'
+            }]).select();
+
+            console.log('[INVOICE-REVISION] نتيجة الإدخال:', { insertedRow, error });
+
+            if (error) {
+                console.error('[INVOICE-REVISION] فشل إرسال طلب التعديل:', error);
+                siteNotify('⚠️ تعذّر إرسال الطلب: ' + (error.message || error.code || JSON.stringify(error)));
+                btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> إرسال للعميل';
+                return;
+            }
+            siteNotify('✅ تم إرسال طلب تعديل الفاتورة للعميل، بانتظار موافقته');
+            closeInvoiceRevisionModal();
+            _refreshInvoiceRevisionButtonState();
+            btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> إرسال للعميل';
+        } catch(e) {
+            console.error('[INVOICE-REVISION] استثناء غير متوقع أثناء الإرسال:', e);
+            siteNotify('⚠️ خطأ غير متوقع: ' + (e.message || e));
+            const btn2 = document.getElementById('inv-rev-submit-btn');
+            if (btn2) { btn2.disabled = false; btn2.innerHTML = '<i class="fas fa-paper-plane"></i> إرسال للعميل'; }
+        }
+    }
+
+    // [INVOICE-REVISION] تحديث حالة الزر (مقفل/متاح) حسب وجود طلب معلَّق لهذا الطلب بالتحديد
+    async function _refreshInvoiceRevisionButtonState() {
+        const btn = document.getElementById('btn-invoice-revision');
+        const statusLine = document.getElementById('invoice-revision-status-line');
+        if (!btn || !currentOrderID) return;
+        try {
+            const { data: pending } = await supabaseClient.from('invoice_revision_requests')
+                .select('id,new_amount,status').eq('order_id', String(currentOrderID)).order('id', { ascending: false }).limit(1).maybeSingle();
+            if (pending && pending.status === 'pending') {
+                btn.disabled = true; btn.style.opacity = '0.5';
+                statusLine.style.display = 'block';
+                statusLine.innerText = `⏳ بانتظار رد العميل على فاتورة ${parseFloat(pending.new_amount).toLocaleString()} ل.س`;
+            } else {
+                btn.disabled = false; btn.style.opacity = '1';
+                statusLine.style.display = 'none';
+            }
+        } catch(e) { console.error('[INVOICE-REVISION] خطأ أثناء فحص حالة الطلب:', e); }
+    }
+
     function openAdminChat() {
         const name = currentUserData ? (currentUserData.name || 'غير معروف') : 'صقر شاهين';
         let orderContext = currentOrderID ? `عندي مشكلة في الطلب رقم #${currentOrderID}` : "عندي مشكلة وأرجو الرد";
@@ -2136,6 +2306,65 @@
         }
     });
 
+    // [FIX-CONTRACT-EXTRA-FIELDS] حفظ وتحميل البيانات الإضافية المطلوبة لعقد العمل الرسمي
+    async function saveContractExtraFields() {
+        if (!currentUserData) return;
+        const payload = {
+            id_number:      document.getElementById('cf-id-number').value.trim()      || null,
+            birth_date_txt: document.getElementById('cf-birthdate').value.trim()      || null,
+            address:        document.getElementById('cf-address').value.trim()        || null,
+            vehicle_model:  document.getElementById('cf-vehicle-model').value.trim()   || null,
+            vehicle_color:  document.getElementById('cf-vehicle-color').value.trim()   || null,
+            vehicle_plate:  document.getElementById('cf-vehicle-plate').value.trim()   || null,
+            license_number: document.getElementById('cf-license-num').value.trim()     || null
+        };
+        try {
+            const { error } = await supabaseClient.from('drivers').update(payload).eq('id', currentUserData.id);
+            if (error) { siteNotify('⚠️ فشل حفظ البيانات: ' + error.message); return; }
+            Object.assign(currentUserData, payload);
+            try { localStorage.setItem('shaheen_driver', JSON.stringify(currentUserData)); } catch(e) {}
+            siteNotify('✅ تم حفظ البيانات — ستُستخدم تلقائياً في عقد العمل');
+        } catch(e) {
+            siteNotify('⚠️ خطأ غير متوقع أثناء الحفظ: ' + e.message);
+        }
+    }
+
+    // [FIX-DRIVER-INFO-PAGE] يعيد تعبئة كل حقول صفحة "معلومات المندوب" الموحَّدة من currentUserData —
+    // يعمل في كل مرة تُفتح فيها الصفحة، فأي بيانات جديدة تُضاف لهذا الكائن مستقبلاً (بأي تعديل قادم)
+    // تظهر تلقائياً هنا دون الحاجة لإنشاء قسم منفصل جديد في مكان آخر من التطبيق
+    function loadDriverInfoPage() {
+        if (!currentUserData) return;
+        const set = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val || '—'; };
+        set('profile-info-name', currentUserData.name);
+        set('profile-info-phone', currentUserData.phone);
+        const piEmail = document.getElementById('profile-info-email');
+        if (piEmail) {
+            const em = currentUserData.email;
+            const isFakeEmail = !em || em.startsWith('driver_') || em.startsWith('manual_');
+            piEmail.innerText = isFakeEmail ? '⚠️ غير مسجل' : em;
+            piEmail.style.color = isFakeEmail ? '#e74c3c' : '#3498db';
+        }
+        set('profile-info-vehicle', currentUserData.car_type);
+        set('profile-info-city', currentUserData.governorate || currentUserData.city);
+    }
+
+    function _loadContractExtraFieldsUI() {
+        if (!currentUserData) return;
+        const map = {
+            'cf-id-number':      currentUserData.id_number,
+            'cf-birthdate':      currentUserData.birth_date_txt,
+            'cf-address':        currentUserData.address,
+            'cf-vehicle-model':  currentUserData.vehicle_model,
+            'cf-vehicle-color':  currentUserData.vehicle_color,
+            'cf-vehicle-plate':  currentUserData.vehicle_plate,
+            'cf-license-num':    currentUserData.license_number
+        };
+        Object.keys(map).forEach(id => {
+            const el = document.getElementById(id);
+            if (el && map[id]) el.value = map[id];
+        });
+    }
+
     async function toggleWorkStatus(status) {
         if (!currentUserData) return;
         const statusText = status ? 'online' : 'offline';
@@ -2152,57 +2381,10 @@
         // من نظام التشغيل نفسه، غير قابل للتجاوز من صفحة ويب عادية)
         if (status) { _requestWakeLock(); } else { _releaseWakeLock(); }
 
-        // [FIX-REALTIME-TOGGLE] إعادة بناء قناة الطلبات فور تفعيل الاستقبال
-        // هذا يضمن وصول الطلبات فوراً بدون تحديث الصفحة
+        // [FIX-REALTIME-CONSOLIDATE] إعادة بناء قناة الطلبات فور تفعيل الاستقبال — نفس التطبيق الوحيد
+        // المعتمَد في كل مكان بالتطبيق الآن، بدل نسخة مكرَّرة قد تختلف عن الباقي
         if (status) {
-            try { supabaseClient.removeChannel(supabaseClient.channel('public_orders_realtime')); } catch(_e) {}
-            supabaseClient
-                .channel('public_orders_realtime')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sh_public_orders' }, payload => {
-                    if(payload.new.is_consultation === true) return;
-                    if(payload.new.status === 'searching' || payload.new.status === 'pending') {
-                        siteNotify("🦅 صيد جديد! طلب من " + (payload.new.restaurant_name || payload.new.res || payload.new.res_name));
-                        refreshOrders();
-                    }
-                })
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sh_public_orders' }, payload => {
-                    if(payload.new.id === currentOrderID && (payload.new.status === 'cancelled' || payload.new.status === 'completed')) {
-                        _closeDriverPath(payload.new.id);
-                        currentOrderID = null;
-                        localStorage.removeItem('active_order_id');
-                        nav('p-main');
-                    }
-                    if(payload.new.status === 'accepted' && payload.new.driver_id && payload.new.driver_id !== currentUserData.id) {
-                        const cardToRemove = document.getElementById('order-card-' + payload.new.id);
-                        if(cardToRemove) {
-                            cardToRemove.style.transition = 'opacity 0.3s, transform 0.3s';
-                            cardToRemove.style.opacity = '0';
-                            cardToRemove.style.transform = 'scale(0.8)';
-                            setTimeout(() => { if(cardToRemove.parentNode) cardToRemove.parentNode.removeChild(cardToRemove); }, 300);
-                        }
-                    }
-                    refreshOrders();
-                })
-                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sh_public_orders' }, payload => {
-                    if(payload.old && payload.old.id === currentOrderID) {
-                        currentOrderID = null;
-                        localStorage.removeItem('active_order_id');
-                        siteNotify("الطلب لم يعد متاحاً (تم الإلغاء)");
-                        nav('p-main');
-                    }
-                    refreshOrders();
-                })
-                .subscribe((status) => {
-                    if (status === 'SUBSCRIBED') {
-                        // القناة جاهزة — جلب الطلبات الحالية فوراً
-                        refreshOrders();
-                    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-                        setTimeout(() => {
-                            try { supabaseClient.removeChannel(supabaseClient.channel('public_orders_realtime')); } catch(e){}
-                            if (currentUserData && localStorage.getItem('shaheen_work_status') === 'online') refreshOrders();
-                        }, 3000);
-                    }
-                });
+            _setupOrdersRealtimeChannel();
         }
         // [END-FIX-REALTIME-TOGGLE]
 
@@ -2624,77 +2806,8 @@
                     }
                 });
 
-            supabaseClient.removeChannel(supabaseClient.channel('public_orders_realtime'));
-            supabaseClient
-                .channel('public_orders_realtime')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sh_public_orders' }, payload => {
-                    // --- فلتر الاستشارة: لا نُشعر المندوب إذا كان الطلب استشارة صيدلانية ---
-                    if(payload.new.is_consultation === true) return;
-                    if(payload.new.status === 'searching' || payload.new.status === 'pending') {
-                        siteNotify("🦅 صيد جديد! طلب من " + (payload.new.restaurant_name || payload.new.res || payload.new.res_name));
-                        refreshOrders(); 
-                    }
-                })
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sh_public_orders' }, payload => {
-                    if(payload.new.id === currentOrderID && (payload.new.status === 'cancelled' || payload.new.status === 'completed')) {
-                        // ===== إغلاق مسار التتبع عند انتهاء الطلب =====
-                        _closeDriverPath(payload.new.id);
-                        // ===== نهاية إغلاق المسار =====
-                        currentOrderID = null;
-                        localStorage.removeItem('active_order_id');
-                        nav('p-main');
-                    }
-                    if(payload.new.id === currentOrderID && payload.new.restaurant_note) {
-                        const noteBox = document.getElementById('res-status-notification');
-                        const noteText = document.getElementById('res-status-text');
-                        if(noteBox && noteText) {
-                            noteBox.style.display = 'block';
-                            // ===== تعديل: إزالة كود التحقق من رسالة المتجر =====
-                            let _filteredNote = payload.new.restaurant_note;
-                            _filteredNote = _filteredNote.replace(/🔑.*كود.*التحقق.*[:\-]?\s*\d+/gi, '');
-                            _filteredNote = _filteredNote.replace(/كود\s*التحقق.*[:\-]?\s*\d+/gi, '');
-                            _filteredNote = _filteredNote.replace(/verify.*code.*[:\-]?\s*\d+/gi, '');
-                            _filteredNote = _filteredNote.replace(/\d{4}(?=\s|$|\n)/g, '').trim();
-                            noteText.innerText = _filteredNote;
-                        }
-                    }
-                    // --- تحديث تلقائي للفاتورة عند وصول قيمة PHARMACY_TOTAL في order_details ---
-                    if(payload.new.id === currentOrderID && payload.new.order_details && payload.new.order_details.includes('PHARMACY_TOTAL:')) {
-                        reconnectActiveOrder(currentOrderID);
-                        siteNotify("📋 تم استلام قيمة فاتورة الصيدلية تلقائياً!");
-                    }
-                    // ===== قنص الطلبات: إزالة الطلب فوراً من الواجهة إذا قنصه مندوب آخر =====
-                    if(payload.new.status === 'accepted' && payload.new.driver_id && payload.new.driver_id !== (currentUserData ? currentUserData.id : null)) {
-                        // الطلب قُنص من مندوب آخر - أزله فوراً من الكروت المعروضة
-                        const cardToRemove = document.getElementById('order-card-' + payload.new.id);
-                        if(cardToRemove) {
-                            cardToRemove.style.transition = 'opacity 0.3s, transform 0.3s';
-                            cardToRemove.style.opacity = '0';
-                            cardToRemove.style.transform = 'scale(0.8)';
-                            setTimeout(() => { if(cardToRemove.parentNode) cardToRemove.parentNode.removeChild(cardToRemove); }, 300);
-                        }
-                    }
-                    refreshOrders();
-                })
-                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sh_public_orders' }, payload => {
-                    if(payload.old && payload.old.id === currentOrderID) {
-                        currentOrderID = null;
-                        localStorage.removeItem('active_order_id');
-                        siteNotify("الطلب لم يعد متاحاً (تم الإلغاء)");
-                        nav('p-main');
-                    }
-                    refreshOrders();
-                })
-                .subscribe((status, err) => {
-                    // [FIX-CHAT-D2] إعادة الاتصال التلقائي عند انقطاع قناة الطلبات
-                    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-                        setTimeout(() => {
-                            try { supabaseClient.removeChannel(supabaseClient.channel('public_orders_realtime')); } catch(e){}
-                            supabaseClient.removeChannel(supabaseClient.channel('public_orders_realtime'));
-                            if (currentUserData) refreshOrders();
-                        }, 3000);
-                    }
-                });
+            // [FIX-REALTIME-CONSOLIDATE] نفس التطبيق الوحيد المعتمَد لقناة الطلبات
+            _setupOrdersRealtimeChannel();
 
             // ===== Realtime لطلبات التمويل: تختفي/تظهر الأيقونة فوراً =====
             // [PWA-FIX-D2] إزالة قناة التمويل القديمة قبل إنشاء جديدة
@@ -2744,6 +2857,8 @@
                 piEmail.style.color = isFakeEmail ? '#e74c3c' : '#3498db';
             }
             if (piVehicle) piVehicle.innerText = currentUserData.car_type || '—';
+            const piCity = document.getElementById('profile-info-city');
+            if (piCity) piCity.innerText = currentUserData.governorate || currentUserData.city || '—';
             // ===== نهاية ملء بيانات الحساب =====
             
             // FIX: في الخلفية بدون await
@@ -2839,54 +2954,9 @@
             setTimeout(function() { if (typeof _showNotifModal === 'function') _showNotifModal(); }, 1500);
             // [END-NOTIF-FORCE-CALL]
 
-            // [FIX-REALTIME-AFTER-LOGIN] التأكد من أن قناة الطلبات مفعّلة بعد تسجيل الدخول
-            // تُعيد البناء دائماً حتى لو كانت موجودة — لضمان الاتصال الصحيح
+            // [FIX-REALTIME-AFTER-LOGIN] [FIX-REALTIME-CONSOLIDATE] نفس التطبيق الوحيد المعتمَد
             setTimeout(function() {
-                try { supabaseClient.removeChannel(supabaseClient.channel('public_orders_realtime')); } catch(_e) {}
-                supabaseClient
-                    .channel('public_orders_realtime')
-                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sh_public_orders' }, payload => {
-                        if(payload.new.is_consultation === true) return;
-                        if(payload.new.status === 'searching' || payload.new.status === 'pending') {
-                            siteNotify("🦅 صيد جديد! طلب من " + (payload.new.restaurant_name || payload.new.res || payload.new.res_name));
-                            refreshOrders();
-                        }
-                    })
-                    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sh_public_orders' }, payload => {
-                        if(payload.new.id === currentOrderID && (payload.new.status === 'cancelled' || payload.new.status === 'completed')) {
-                            _closeDriverPath(payload.new.id);
-                            currentOrderID = null;
-                            localStorage.removeItem('active_order_id');
-                            nav('p-main');
-                        }
-                        if(payload.new.status === 'accepted' && payload.new.driver_id && payload.new.driver_id !== (currentUserData ? currentUserData.id : null)) {
-                            const cardToRemove = document.getElementById('order-card-' + payload.new.id);
-                            if(cardToRemove) {
-                                cardToRemove.style.transition = 'opacity 0.3s, transform 0.3s';
-                                cardToRemove.style.opacity = '0';
-                                cardToRemove.style.transform = 'scale(0.8)';
-                                setTimeout(() => { if(cardToRemove.parentNode) cardToRemove.parentNode.removeChild(cardToRemove); }, 300);
-                            }
-                        }
-                        refreshOrders();
-                    })
-                    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sh_public_orders' }, payload => {
-                        if(payload.old && payload.old.id === currentOrderID) {
-                            currentOrderID = null;
-                            localStorage.removeItem('active_order_id');
-                            siteNotify("الطلب لم يعد متاحاً (تم الإلغاء)");
-                            nav('p-main');
-                        }
-                        refreshOrders();
-                    })
-                    .subscribe((status) => {
-                        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-                            setTimeout(() => {
-                                try { supabaseClient.removeChannel(supabaseClient.channel('public_orders_realtime')); } catch(e){}
-                                if (currentUserData) refreshOrders();
-                            }, 3000);
-                        }
-                    });
+                _setupOrdersRealtimeChannel();
             }, 500);
             // [END-FIX-REALTIME-AFTER-LOGIN]
 
@@ -3132,9 +3202,28 @@
         const startOfWeek = new Date(startOfToday);
         startOfWeek.setDate(startOfToday.getDate() - startOfToday.getDay());
 
+        // [FIX-DRIVER-DAILY-CLOSING] إن كان المندوب قد نفّذ إقفالاً يومياً اليوم (نظام sh_driver_daily_closings
+        // الموجود أصلاً)، تُحسَب "أرباح اليوم" اعتباراً من لحظة آخر إقفال فصاعداً بدل بداية اليوم بالكامل —
+        // بدون حذف أو تعديل أي سجل فعلي، فقط لتعكس الواجهة الإقفال الذي حدث فعلياً
+        let _todayCutoff = startOfToday;
+        try {
+            const { data: _lastClosing } = await supabaseClient
+                .from('sh_driver_daily_closings')
+                .select('closed_at, created_at')
+                .eq('driver_id', currentUserData.id)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            const _closingTime = _lastClosing && (_lastClosing.closed_at || _lastClosing.created_at);
+            if (_closingTime) {
+                const _closingDate = new Date(_closingTime);
+                if (_closingDate > _todayCutoff) _todayCutoff = _closingDate;
+            }
+        } catch(e) { /* الجدول قد لا يكون موجوداً بعد أول إقفال — لا يوقف الصفحة */ }
+
         rows.forEach(row => {
             totalEarnings += row.amount;
-            if(row.date >= startOfToday) todayEarnings += row.amount;
+            if(row.date >= _todayCutoff) todayEarnings += row.amount;
             if(row.date >= startOfWeek)  weekEarnings  += row.amount;
         });
 
@@ -3574,12 +3663,18 @@
     function startRefreshTimer() {
         if(refreshInterval) clearInterval(refreshInterval);
         refreshProgress = 0;
+        // [FIX-MIN-POLL-INTERVAL] الشريط الآن مجرد مؤشر بصري لدورة مزامنة احتياطية فقط — اكتشاف
+        // الطلبات الجديدة الفعلي يحدث فوراً عبر الاتصال اللحظي (Realtime) بشكل مستقل تماماً عن هذا
+        // الشريط، كما هو موضَّح في تعليق refreshOrders() أدناه. هذه الدورة نفسها اختُصرت من 15 ثانية
+        // إلى 3 ثوانٍ فقط لتكون شبكة أمان أقوى بكثير في أي سيناريو نادر يتأخر فيه وصول حدث Realtime،
+        // دون زيادة ملموسة في استهلاك الموارد (نفس الاستعلام الخفيف المُحسَّن أصلاً).
+        const _POLL_TICKS = 30; // 30 × 100ms = 3 ثوانٍ
         refreshInterval = setInterval(() => {
             if(refreshProgress < 0) refreshProgress = 0;
             refreshProgress += 1;
             const barEl = document.getElementById('refresh-bar');
-            if(barEl) barEl.style.width = Math.min((refreshProgress / 150) * 100, 100) + "%";
-            if(refreshProgress >= 150) { 
+            if(barEl) barEl.style.width = Math.min((refreshProgress / _POLL_TICKS) * 100, 100) + "%";
+            if(refreshProgress >= _POLL_TICKS) {
                 refreshProgress = 0;
                 if(barEl) barEl.style.width = '0%';
                 refreshOrders();
@@ -3726,6 +3821,21 @@
                         <div style="margin-top:4px; font-size:8px; color:#888;">
                             العميل: ${escHtml(o.customer_name) || '---'} | العنوان: ${escHtml(o.customer_address) || '---'}
                         </div>
+                        <!-- [FIX-CUSTOMER-RATING-HISTORY] تقييم العميل وملاحظته — تظهر فقط للطلبات المكتملة -->
+                        ${o.status === 'completed' ? `
+                        <div style="margin-top:6px; padding-top:6px; border-top:1px dashed rgba(255,255,255,0.1);">
+                            ${o.customer_rating ? `
+                            <div style="font-size:10px; color:var(--gold);">
+                                ${'★'.repeat(Math.round(o.customer_rating))}${'☆'.repeat(5 - Math.round(o.customer_rating))}
+                                <span style="color:#aaa; font-size:9px;">(${o.customer_rating}/5)</span>
+                            </div>` : `
+                            <div style="font-size:9px; color:#666;"><i class="fas fa-star-half-alt"></i> لم يتم تقييم الطلب بعد</div>`}
+                            ${o.customer_rating_comment ? `
+                            <div style="margin-top:4px; background:rgba(212,175,55,0.06); border:1px solid rgba(212,175,55,0.2); border-radius:6px; padding:5px 8px;">
+                                <small style="color:#eee; font-size:9px;"><i class="fas fa-comment-dots" style="color:var(--gold);"></i> ${escHtml(o.customer_rating_comment)}</small>
+                            </div>` : `
+                            <div style="margin-top:3px; font-size:9px; color:#666;"><i class="fas fa-comment-slash"></i> لا توجد ملاحظات</div>`}
+                        </div>` : ''}
                     </div>`;
             });
         } else {
@@ -3735,14 +3845,145 @@
 
     let _refreshOrdersLock = false; // [FIX-D1] guard ضد race condition
     let _refreshLockSetAt = 0; // [FIX-LOCK-WATCHDOG] وقت تفعيل القفل — لاكتشاف القفل العالق
+    let _refreshOrdersPendingRetry = false; // [FIX-INSTANT-NEW-ORDER] طلب تحديث وصل أثناء انشغال آخر
+
+    // [FIX-REALTIME-CONSOLIDATE] التنفيذ الوحيد والمعتمَد لقناة طلبات الاستماع اللحظي — كانت هذه
+    // الشيفرة مكرَّرة بأربع نسخ منفصلة عبر الملف (عند: تفعيل الاستقبال يدوياً، تحميل الصفحة، تسجيل
+    // الدخول، وإعادة الاتصال التلقائي)، وهذا بالضبط سبب تكرار حصول أخطاء "أُصلحت بنسخة ونُسيت بالباقي"
+    // أكثر من مرة أثناء هذا المشروع (استثناء طلبات الاستلام، حذف الطلب الملغى فوراً...). الآن يوجد
+    // تطبيق واحد فقط، تستدعيه كل نقاط التهيئة الأربع، فلا يمكن لأي إصلاح مستقبلي أن يُطبَّق في نسخة
+    // ويُنسى في نسخة أخرى — لأنه لا توجد نسخ متعددة بعد الآن.
+    function _setupOrdersRealtimeChannel() {
+        try { supabaseClient.removeChannel(supabaseClient.channel('public_orders_realtime')); } catch(_e) {}
+        supabaseClient
+            .channel('public_orders_realtime')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sh_public_orders' }, payload => {
+                // --- فلتر الاستشارة: لا نُشعر المندوب إذا كان الطلب استشارة صيدلانية ---
+                if (payload.new.is_consultation === true) return;
+                // [FIX-PICKUP-LEAK] طلبات الاستلام من المطعم لا تصل للمندوب إطلاقاً
+                if (payload.new.service_type === 'pickup') return;
+                if (payload.new.status === 'searching' || payload.new.status === 'pending') {
+                    siteNotify("🦅 صيد جديد! طلب من " + (payload.new.restaurant_name || payload.new.res || payload.new.res_name));
+                    refreshOrders();
+                }
+            })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sh_public_orders' }, payload => {
+                if (payload.new.id === currentOrderID && (payload.new.status === 'cancelled' || payload.new.status === 'completed')) {
+                    try { _closeDriverPath(payload.new.id); } catch(_e) {}
+                    currentOrderID = null;
+                    localStorage.removeItem('active_order_id');
+                    nav('p-main');
+                }
+                // طلب قنصه مندوب آخر — يُحذَف من القائمة فوراً
+                if (payload.new.status === 'accepted' && payload.new.driver_id && payload.new.driver_id !== (currentUserData ? currentUserData.id : null)) {
+                    const cardToRemove = document.getElementById('order-card-' + payload.new.id);
+                    if (cardToRemove) {
+                        cardToRemove.style.transition = 'opacity 0.3s, transform 0.3s';
+                        cardToRemove.style.opacity = '0';
+                        cardToRemove.style.transform = 'scale(0.8)';
+                        setTimeout(() => { if (cardToRemove.parentNode) cardToRemove.parentNode.removeChild(cardToRemove); }, 300);
+                    }
+                }
+                // [FIX-INSTANT-CANCEL-REMOVE] طلب متاح (لم يُقبل بعد) أُلغي — يُحذَف من القائمة فوراً
+                if (payload.new.status === 'cancelled' && payload.new.id !== currentOrderID) {
+                    const _cancelCard = document.getElementById('order-card-' + payload.new.id);
+                    if (_cancelCard) {
+                        _cancelCard.style.transition = 'opacity 0.3s, transform 0.3s';
+                        _cancelCard.style.opacity = '0';
+                        _cancelCard.style.transform = 'scale(0.8)';
+                        setTimeout(() => { if (_cancelCard.parentNode) _cancelCard.parentNode.removeChild(_cancelCard); }, 300);
+                    }
+                }
+                // رسالة حالة المطعم (بدون كود التحقق)
+                if (payload.new.id === currentOrderID && payload.new.restaurant_note) {
+                    const noteBox = document.getElementById('res-status-notification');
+                    const noteText = document.getElementById('res-status-text');
+                    if (noteBox && noteText) {
+                        noteBox.style.display = 'block';
+                        let _filteredNote = payload.new.restaurant_note;
+                        _filteredNote = _filteredNote.replace(/🔑.*كود.*التحقق.*[:\-]?\s*\d+/gi, '');
+                        _filteredNote = _filteredNote.replace(/كود\s*التحقق.*[:\-]?\s*\d+/gi, '');
+                        _filteredNote = _filteredNote.replace(/verify.*code.*[:\-]?\s*\d+/gi, '');
+                        _filteredNote = _filteredNote.replace(/\d{4}(?=\s|$|\n)/g, '').trim();
+                        noteText.innerText = _filteredNote;
+                    }
+                }
+                // تحديث تلقائي للفاتورة عند وصول قيمة PHARMACY_TOTAL في order_details
+                if (payload.new.id === currentOrderID && payload.new.order_details && payload.new.order_details.includes('PHARMACY_TOTAL:')) {
+                    reconnectActiveOrder(currentOrderID);
+                    siteNotify("📋 تم استلام قيمة فاتورة الصيدلية تلقائياً!");
+                }
+                // [FIX-CUSTOMER-RATING-HISTORY] وصل تقييم/ملاحظة عميل جديدة لطلب مكتمل يخص هذا المندوب
+                // — إن كانت صفحة "الطلبات السابقة" مفتوحة حالياً، أعد تحميلها فوراً ليظهر التقييم مباشرة
+                if (payload.new.driver_id === (currentUserData ? currentUserData.id : null) && payload.new.status === 'completed'
+                    && (payload.new.customer_rating || payload.new.customer_rating_comment)) {
+                    const _histPage = document.getElementById('p-order-history');
+                    if (_histPage && _histPage.style.display !== 'none' && typeof loadFullHistoryUI === 'function') {
+                        loadFullHistoryUI();
+                    }
+                }
+                refreshOrders();
+            })
+            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sh_public_orders' }, payload => {
+                if (payload.old && payload.old.id === currentOrderID) {
+                    currentOrderID = null;
+                    localStorage.removeItem('active_order_id');
+                    siteNotify("الطلب لم يعد متاحاً (تم الإلغاء)");
+                    nav('p-main');
+                }
+                refreshOrders();
+            })
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    refreshOrders();
+                } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+                    setTimeout(() => {
+                        try { supabaseClient.removeChannel(supabaseClient.channel('public_orders_realtime')); } catch(e){}
+                        if (currentUserData && localStorage.getItem('shaheen_work_status') === 'online') refreshOrders();
+                    }, 3000);
+                }
+            });
+    }
+
+    // [FIX-INSTANT-NEW-ORDER] نقطة تحرير موحّدة للقفل — تضمن أن أي طلب تحديث وصل أثناء انشغال دورة
+    // سابقة (غالباً بسبب طلب جديد عبر الاتصال اللحظي) يُنفَّذ فوراً بمجرد تحرّر القفل، لا أن يُفقَد
+    // بصمت وينتظر الدورة الدورية التالية (حتى 15 ثانية سابقاً)
+    function _releaseRefreshLock() {
+        _refreshOrdersLock = false;
+        if (_refreshOrdersPendingRetry) {
+            _refreshOrdersPendingRetry = false;
+            console.log('[FIX-INSTANT-NEW-ORDER] تنفيذ فوري لطلب تحديث كان معلَّقاً أثناء انشغال القفل');
+            setTimeout(refreshOrders, 0);
+        }
+    }
     async function refreshOrders() {
-        if (_refreshOrdersLock) return;
+        if (_refreshOrdersLock) {
+            // [FIX-INSTANT-NEW-ORDER] لا نتجاهل هذا الطلب بصمت — قد يكون بسبب وصول طلب جديد فعلياً عبر
+            // الاتصال اللحظي بينما دورة تحديث سابقة لا تزال قيد التنفيذ. نسجّل رغبة بإعادة التنفيذ فور
+            // تحرّر القفل مباشرة، بدل الانتظار حتى الدورة الدورية التالية (حتى 15 ثانية سابقاً) — وهذا
+            // بالضبط كان سبب "الطلب الجديد لا يظهر حتى يكتمل الشريط ويُعاد من الصفر".
+            _refreshOrdersPendingRetry = true;
+            return;
+        }
+        // [FIX-CONCURRENT-ORDERS-FREEZE] لا نعيد بناء القائمة أثناء سحب فعلي جارٍ — نؤجّل هذه الدورة
+        // بضع مئات المللي ثانية ونعيد المحاولة تلقائياً بدل تجميد التفاعل البصري تحت إصبع المندوب
+        if (window._swDragInProgress) {
+            console.log('[FIX-CONCURRENT-ORDERS-FREEZE] سحب جارٍ فعلياً — تأجيل تحديث القائمة مؤقتاً');
+            setTimeout(refreshOrders, 400);
+            return;
+        }
         _refreshOrdersLock = true;
-        _refreshLockSetAt = Date.now(); // [FIX-LOCK-WATCHDOG]
+        _refreshLockSetAt = Date.now();
+        // [FIX-PROGRESS-BAR-DESYNC] إعادة تشغيل مؤقّت الشريط بالكامل (يمسح المؤقّت القديم وينشئ واحداً
+        // جديداً) بدل التلاعب المباشر بمتغيّر refreshProgress من هنا فقط — التلاعب المباشر كان يتعارض
+        // مع نفس المتغيّر الذي يزيده مؤقّت startRefreshTimer المستقل كل 100ms بشكل منفصل تماماً، مما
+        // كان يُسبِّب تعارضاً بصرياً (الشريط يبدو متجمّداً أو لا يتحرك بشكل طبيعي) عند وصول تحديث فوري
+        // (طلب جديد عبر الاتصال اللحظي) في منتصف دورة الشريط الحالية.
+        try { startRefreshTimer(); } catch(_e0) {}
         // [FIX-LOCK-WATCHDOG] أمان إضافي: لو القفل علِق لأي سبب غير متوقع، يُفتح تلقائياً بعد 10 ثواني
         setTimeout(() => {
             if (_refreshOrdersLock && _refreshLockSetAt && (Date.now() - _refreshLockSetAt >= 10000)) {
-                _refreshOrdersLock = false;
+                _releaseRefreshLock();
             }
         }, 10500);
         // إعادة ضبط العداد وشريط التحديث من الصفر
@@ -3752,11 +3993,20 @@
         const list = document.getElementById('orders-list');
         
         const isOnline = localStorage.getItem('shaheen_work_status') === 'online';
-        if(!isOnline) { list.innerHTML = "<div style='text-align:center; color:#888; margin-top:50px;'><i class='fas fa-toggle-off' style='font-size:25px; display:block; margin-bottom:10px;'></i> شغل (حالة استقبال الطلبات) لتبدأ بالصيد يا صقر 🦅</div>"; _refreshOrdersLock = false; return; }
+        if(!isOnline) { list.innerHTML = "<div style='text-align:center; color:#888; margin-top:50px;'><i class='fas fa-toggle-off' style='font-size:25px; display:block; margin-bottom:10px;'></i> شغل (حالة استقبال الطلبات) لتبدأ بالصيد يا صقر 🦅</div>"; _releaseRefreshLock(); return; }
+
+        // [PERF-FIX-PARALLEL-QUERIES] كانت هذه الفحوصات تُنفَّذ بشكل متسلسل (await ثم await)، فيضيف كل
+        // استعلام زمن رحلة شبكة كاملاً قبل بدء التالي — هذه الدورة تعمل كل 15 ثانية، فأي تأخير هنا
+        // يُشعر المستخدم ببطء ملموس. الآن تُنفَّذ الاستعلامات المستقلة معاً بالتوازي (Promise.all)
+        // بدل التسلسل، فيصبح الزمن الكلي مساوياً لأبطأ استعلام واحد فقط بدل مجموعهما.
+        const [_balCheckRes, _activeCheckRes] = await Promise.all([
+            currentUserData ? supabaseClient.from('drivers').select('wallet_balance, status').eq('id', currentUserData.id).single() : Promise.resolve({ data: null }),
+            currentOrderID ? supabaseClient.from('sh_public_orders').select('status').eq('id', currentOrderID).maybeSingle() : Promise.resolve({ data: null })
+        ]);
 
         // ===== فحص رصيد المندوب قبل عرض الطلبات =====
         if(currentUserData) {
-            const { data: balCheck } = await supabaseClient.from('drivers').select('wallet_balance, status').eq('id', currentUserData.id).single();
+            const balCheck = _balCheckRes.data;
             const bal = parseFloat(balCheck?.wallet_balance) || 0;
             const _minBal = await _getMinDriverBalance(); // [MIN-BALANCE]
             if(bal <= _minBal || balCheck?.status === 'locked') {
@@ -3767,24 +4017,28 @@
                     <button class='btn-gold' style='background:#e74c3c; color:#fff; width:auto; padding:8px 16px; font-size:10px;' onclick='nav("p-wallet")'><i class='fas fa-wallet'></i> اذهب للمحفظة</button>
                 </div>`;
                 showBalanceEmptyModal();
-                _refreshOrdersLock = false;
+                _releaseRefreshLock();
                 return;
             }
         }
 
         if(currentOrderID) {
-            const { data: checkActive } = await supabaseClient.from('sh_public_orders').select('status').eq('id', currentOrderID).maybeSingle();
+            const checkActive = _activeCheckRes.data;
             if(!checkActive || !['accepted', 'picked', 'preparing', 'ready'].includes(checkActive.status)) {
                 currentOrderID = null;
                 localStorage.removeItem('active_order_id');
             } else {
                 list.innerHTML = "<div style='text-align:center; color:var(--gold); margin-top:50px; padding:20px; background:rgba(212,175,55,0.05); border-radius:15px;'><i class='fas fa-lock' style='font-size:25px; margin-bottom:10px;'></i><br>أكمل طلبك الحالي يا صقر لتتمكن من قنص طلبات جديدة 🦅</div>";
-                _refreshOrdersLock = false;
+                _releaseRefreshLock();
                 return;
             }
         }
 
-        const { data, error } = await supabaseClient.from('sh_public_orders').select('*').in('status', ['searching', 'pending']).order('created_at', { ascending: false });
+        // [PERF-FIX-SELECT-COLUMNS] تحديد الأعمدة الفعلية المستخدمة في عرض القائمة بدل select('*') —
+        // يقلّل حجم البيانات المنقولة عبر الشبكة في كل دورة تحديث (كل 15 ثانية)، فيصل الرد أسرع خصوصاً
+        // على اتصال بطيء أو عند وجود عدد كبير من الطلبات المتاحة
+        const _orderListCols = 'id,restaurant_name,res,res_name,res_type,res_address,customer_address,customer_name,customer_id,total,delivery_price,discount,order_details,items,notes,status,is_consultation,service_type,specialty_type,created_at,pickup_lat,pickup_lng,lat,lng,driver_id';
+        const { data, error } = await supabaseClient.from('sh_public_orders').select(_orderListCols).in('status', ['searching', 'pending']).or('service_type.is.null,service_type.neq.pickup').order('created_at', { ascending: false });
         // فلترة الاستشارات يدوياً بعد الجلب لتجنب مشكلة .or في Supabase
         // الطلبات المقبولة (accepted/preparing/ready) مخفية من القائمة — ظهرت في صفحة الطلب النشط فقط
         const filteredData = data ? data.filter(o => o.is_consultation !== true) : [];
@@ -3793,7 +4047,7 @@
         if(error) {
             if(refreshBarEl) { refreshBarEl.style.width = '100%'; }
             list.innerHTML = "<div style='text-align:center; color:#e74c3c; margin-top:50px;'>حدث خطأ أثناء جلب الطلبات، تأكد من اتصالك</div>";
-            _refreshOrdersLock = false; return; // [FIX-D1]
+            _releaseRefreshLock(); return; // [FIX-D1]
         }
 
         if(filteredData && filteredData.length > 0) {
@@ -3828,7 +4082,11 @@
             // ===== نهاية تتبع الطلبات =====
             // إملاء شريط التحديث بعد نجاح الجلب
             if(refreshBarEl) { refreshBarEl.style.width = '100%'; }
-            uniqueOrders.forEach(async o => {
+            // [PERF-FIX-INNERHTML-LOOP] بناء القائمة في مصفوفة نصية أولاً، ثم تحديث DOM مرة واحدة فقط
+            // بعد انتهاء الحلقة بالكامل — بدل `list.innerHTML +=` داخل كل تكرار، وهو نمط يتسبب بإعادة
+            // تحليل وبناء كامل شجرة DOM في كل مرة (تعقيد O(n²) بدل O(n) لعدد الطلبات)
+            const _cardsHtml = [];
+            uniqueOrders.forEach(o => {
                 let itemsList = "";
                 try {
                    const itemsArr = JSON.parse(o.items || "[]");
@@ -3858,7 +4116,10 @@
                 if(isAdminOrder) { typeColor = '#ef4444'; typeLabel = 'طلب إداري'; typeIcon = '<i class="fas fa-headset"></i>'; }
                 // ===== نهاية [ADMIN-ORDER] =====
 
-                list.innerHTML += `
+                // [PICKUP] طلبات الاستلام الذاتي لا تُعرض للمندوب (return داخل forEach = skip)
+                if (o.service_type === 'pickup') return;
+
+                _cardsHtml.push(`
                     <div class="card ${(o.res_type === 'pharmacy' || o.res_type === 'pharmacy_delivery') ? 'pharmacy-driver-card' : ''}" id="order-card-${o.id}" style="border-right: 3px solid ${typeColor}; padding: 6px; ${o.res_type==='flowers' ? 'background:rgba(255,105,180,0.05);' : o.res_type==='sweets' ? 'background:rgba(155,89,182,0.05);' : o.res_type==='family' ? 'background:rgba(244,114,182,0.05);' : ''} ${isAdminOrder ? 'background:rgba(239,68,68,0.08); border:2px solid #ef4444; box-shadow:0 0 12px rgba(239,68,68,0.25);' : ''}">
                         ${(o.res_type === 'pharmacy' || o.res_type === 'pharmacy_delivery') ? '<div style="background:#3498db; color:#fff; font-size:9px; padding:3px 8px; border-radius:6px; margin-bottom:5px; text-align:center; font-weight:bold;"><i class="fas fa-prescription-bottle-alt"></i> 🏥 طلب صيدلية — اللون الأزرق يميز هذا الطلب</div>' : ''}
                         ${o.res_type === 'flowers' ? '<div style="background:#ff69b4; color:#fff; font-size:9px; padding:3px 8px; border-radius:6px; margin-bottom:5px; text-align:center; font-weight:bold;">🌸 طلب ورود</div>' : ''}
@@ -3879,15 +4140,25 @@
                         </div>
                         ${(parseFloat(o.discount) > 0) ? '<div style="background:rgba(231,76,60,0.15);border:1px solid #e74c3c;border-radius:6px;padding:5px 8px;margin-bottom:5px;text-align:center;font-weight:bold;color:#e74c3c;font-size:10px;">⚠️ تم استخدام كود خصم على هذا الطلب</div>' : ''}
                         ${o.order_details ? `<div style="background:rgba(52,152,219,0.1);border:1px solid rgba(52,152,219,0.3);border-radius:6px;padding:6px 8px;margin-bottom:5px;font-size:10px;color:#ddd;line-height:1.5;direction:rtl;text-align:right;"><b style="color:#3498db;display:block;margin-bottom:3px;font-size:9px;"><i class='fas fa-file-alt'></i> تفاصيل الطلب:</b>${escHtml(o.order_details)}</div>` : ''}
-                        <button class="btn-gold" style="background:${typeColor}; color:${isAdminOrder || o.res_type==='pharmacy' || o.res_type==='wassayni' || o.res_type==='flowers' || o.res_type==='sweets' ? '#fff' : '#000'};" onclick="acceptOrder('${o.id}', '${escHtml(o.restaurant_name || o.res || o.res_name).replace(/'/g,'&#39;')}')"><i class="fas fa-bolt"></i> قنص الطلب 🦅</button>
-                    </div>`;
+                        <!-- [FIX-SWIPE-ACCEPT] شريط سحب لاستلام الطلب — أصفر/ذهبي ثابت دائماً بغض النظر عن نوع الطلب -->
+                        <div class="swipe-slider-track" data-swipe-action="accept-order" data-order-id="${o.id}" data-order-name="${escHtml(o.restaurant_name || o.res || o.res_name || 'طلب شاهين').replace(/"/g,'&quot;')}" data-is-consultation="${o.is_consultation === true ? '1' : '0'}" data-service-type="${escHtml(o.service_type || '')}" style="position:relative; width:100%; height:50px; background:rgba(0,0,0,0.35); border-radius:25px; overflow:hidden; margin-top:6px; border:1px solid var(--gold); touch-action:none; user-select:none;">
+                            <div class="swipe-accept-label" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:11px; font-weight:bold; pointer-events:none;">
+                                اسحب الشريط لاستلام الطلب 🦅
+                            </div>
+                            <div class="swipe-slider-fill" style="position:absolute; top:0; right:0; height:100%; width:0; background:rgba(212,175,55,0.25); pointer-events:none;"></div>
+                            <div class="swipe-slider-handle" style="position:absolute; top:2px; left:2px; width:46px; height:46px; border-radius:50%; background:var(--gold); display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.4); z-index:2; cursor:grab;">
+                                <i class="fas fa-chevron-right" style="color:#000; font-size:16px;"></i>
+                            </div>
+                        </div>
+                    </div>`);
             });
+            list.innerHTML = _cardsHtml.join('');
         } else {
             // إملاء شريط التحديث حتى في حال عدم وجود طلبات
             if(refreshBarEl) { refreshBarEl.style.width = '100%'; }
             list.innerHTML = "<div style='text-align:center; color:#555; margin-top:50px;'><i class='fas fa-info-circle' style='font-size:22px; display:block; margin-bottom:8px;'></i> لا يوجد طلبات متاحة حالياً.. ابقَ متيقظاً يا صقر 🦅</div>";
         }
-        _refreshOrdersLock = false; // [FIX-D6] reset lock
+        _releaseRefreshLock(); // [FIX-D6] reset lock
     }
 
     function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -3931,7 +4202,165 @@
     }
 
     let _acceptOrderPending = false; // [FIX-D2]
-    async function acceptOrder(id, restaurantName) {
+    // ===== [FIX-SWIPE-ACCEPT] محرك سحب عام — دلالة أحداث (event delegation) لدعم أكثر من نوع شريط
+    // سحب (استلام طلب، تحديث حالة الطلب...) بدل ربط كل بطاقة بمستمع خاص، ولأن القائمة تُعاد رسمها
+    // بالكامل كل استطلاع (polling) فتتراكم المستمعات وتتسرب الذاكرة لو رُبطت مباشرة بكل مقبض =====
+    (function _initSwipeAcceptOnce() {
+        let _swActive = null; // { trackEl, handleEl, fillEl, trackWidth, handleWidth, startX, action, orderId, orderName }
+
+        function _swGetX(e) {
+            if (e.touches && e.touches.length) return e.touches[0].clientX;
+            if (e.changedTouches && e.changedTouches.length) return e.changedTouches[0].clientX;
+            return e.clientX;
+        }
+
+        function _swReset(state) {
+            if (!state) return;
+            state.handleEl.style.transition = 'left 0.2s ease';
+            state.handleEl.style.left = '2px';
+            state.fillEl.style.transition = 'width 0.2s ease';
+            state.fillEl.style.width = '0px';
+            setTimeout(() => {
+                if (state.handleEl) state.handleEl.style.transition = '';
+                if (state.fillEl) state.fillEl.style.transition = '';
+            }, 220);
+        }
+        window._swResetSlider = function(trackEl) {
+            if (!trackEl) return;
+            const handleEl = trackEl.querySelector('.swipe-slider-handle');
+            const fillEl = trackEl.querySelector('.swipe-slider-fill');
+            if (handleEl) handleEl.style.left = '2px';
+            if (fillEl) fillEl.style.width = '0px';
+        };
+
+        document.addEventListener('pointerdown', function(e) {
+            const handle = e.target.closest('.swipe-slider-handle');
+            if (!handle) return;
+            const track = handle.closest('.swipe-slider-track');
+            if (!track) return;
+            if (track.getAttribute('data-disabled') === '1') return; // [UNIFIED-BTN] مرحلة مقفلة/بانتظار تأكيد
+            const fill = track.querySelector('.swipe-slider-fill');
+            const trackRect = track.getBoundingClientRect();
+            _swActive = {
+                trackEl: track,
+                handleEl: handle,
+                fillEl: fill,
+                trackWidth: trackRect.width,
+                handleWidth: handle.getBoundingClientRect().width,
+                startX: _swGetX(e),
+                startLeft: parseFloat(handle.style.left) || 2,
+                action: track.getAttribute('data-swipe-action'),
+                orderId: track.getAttribute('data-order-id'),
+                orderName: track.getAttribute('data-order-name'),
+                isConsultation: track.getAttribute('data-is-consultation') === '1',
+                serviceType: track.getAttribute('data-service-type') || ''
+            };
+            // [FIX-CONCURRENT-ORDERS-FREEZE] علم عام يخبر refreshOrders() أن سحباً فعلياً قيد التنفيذ
+            // الآن، حتى لا تُعاد كتابة كل قائمة الطلبات (وبالتالي حذف عناصر DOM التي يتفاعل معها
+            // إصبع المندوب فعلياً هذه اللحظة) بينما يسحب المندوب الشريط — وهذا بالضبط سيناريو وصول
+            // طلبين متقاربين: كل طلب جديد يُحدِّث القائمة فوراً، وإن تزامن هذا مع سحب جارٍ فعلياً،
+            // تصبح مراجع العناصر المحفوظة هنا يتيمة (DOM محذوف) فيتجمّد التفاعل البصري وقد يبدو
+            // التطبيق متجمّداً تماماً للمندوب رغم أن الكود لا يزال يعمل فعلياً في الخلفية.
+            window._swDragInProgress = true;
+            // [FIX-STUCK-DRAG-FLAG] شبكة أمان: إن لم يصل حدث pointerup/pointercancel لأي سبب (انقطاع
+            // نظامي كمكالمة واردة أو إشعار أثناء اللمس)، تبقى هذه العلامة عالقة على true للأبد، وبما
+            // أن تحديث القائمة يُؤجَّل بالكامل طالما هذه العلامة صحيحة، فهذا يعني تجميداً دائماً
+            // لتحديثات الطلبات يبدو تماماً كتعليق التطبيق الذي يتطلب إعادة تشغيله. هذا المؤقّت يُصفّرها
+            // قسراً بعد 5 ثوانٍ كحد أقصى مهما حدث.
+            clearTimeout(window._swDragSafetyTimer);
+            window._swDragSafetyTimer = setTimeout(() => {
+                if (window._swDragInProgress) {
+                    console.warn('[FIX-STUCK-DRAG-FLAG] لم يصل حدث انتهاء السحب خلال 5 ثوانٍ — إعادة ضبط قسري');
+                    window._swDragInProgress = false;
+                    _swActive = null;
+                }
+            }, 5000);
+            handle.style.cursor = 'grabbing';
+            handle.setPointerCapture && handle.setPointerCapture(e.pointerId);
+        }, { passive: true });
+
+        document.addEventListener('pointermove', function(e) {
+            if (!_swActive) return;
+            const dx = _swGetX(e) - _swActive.startX;
+            const maxLeft = _swActive.trackWidth - _swActive.handleWidth - 4;
+            let newLeft = _swActive.startLeft + dx;
+            if (newLeft < 2) newLeft = 2;
+            if (newLeft > maxLeft) newLeft = maxLeft;
+            _swActive.handleEl.style.left = newLeft + 'px';
+            _swActive.fillEl.style.width = (newLeft + _swActive.handleWidth) + 'px';
+        }, { passive: true });
+
+        // [FIX-SWIPE-COOLDOWN] قفل مؤقّت 3 ثوانٍ بعد أي سحب ناجح، مع عدّاد تنازلي مرئي (3→2→1) —
+        // يمنع السحب المتكرر السريع الذي قد يسبب تعارض طلبات شبكة متزامنة أو تعليقاً بصرياً، بدل
+        // الاعتماد فقط على قفل صامت غير مرئي للمستخدم
+        function _startSwipeCooldown(trackEl, labelEl) {
+            if (!trackEl) return;
+            trackEl.setAttribute('data-disabled', '1');
+            const _originalLabel = labelEl ? labelEl.innerHTML : null;
+            let _secondsLeft = 3;
+            function _tick() {
+                if (labelEl) {
+                    labelEl.innerHTML = `<i class="fas fa-hourglass-half"></i>&nbsp; يرجى الانتظار ${_secondsLeft}...`;
+                }
+                if (_secondsLeft <= 0) {
+                    trackEl.setAttribute('data-disabled', '0');
+                    // [UNIFIED-BTN] بعد انتهاء العدّاد، نُعيد رسم النص الصحيح للمرحلة الحالية الفعلية
+                    // (لا النص القديم المحفوظ، الذي قد يكون تغيّر أثناء الانتظار)
+                    if (trackEl.id === 'unified-status-swipe-track' && typeof _updateUnifiedButton === 'function') {
+                        _updateUnifiedButton(parseInt(trackEl.getAttribute('data-step') || '0', 10));
+                    } else if (labelEl && _originalLabel) {
+                        labelEl.innerHTML = _originalLabel;
+                    }
+                    return;
+                }
+                _secondsLeft--;
+                setTimeout(_tick, 1000);
+            }
+            _tick();
+        }
+        window._startSwipeCooldown = _startSwipeCooldown;
+
+        function _swEnd(e) {
+            window._swDragInProgress = false;
+            clearTimeout(window._swDragSafetyTimer);
+            if (!_swActive) return;
+            const state = _swActive;
+            _swActive = null;
+            state.handleEl.style.cursor = 'grab';
+            const maxLeft = state.trackWidth - state.handleWidth - 4;
+            const currentLeft = parseFloat(state.handleEl.style.left) || 2;
+            const progress = maxLeft > 0 ? (currentLeft / maxLeft) : 0;
+            if (progress >= 0.82) {
+                // اكتمل السحب — تنفيذ الإجراء المرتبط بهذا الشريط فوراً
+                state.handleEl.style.left = maxLeft + 'px';
+                state.fillEl.style.width = state.trackWidth + 'px';
+                if (state.action === 'accept-order') {
+                    state.trackEl.style.pointerEvents = 'none';
+                    if (typeof acceptOrder === 'function') acceptOrder(state.orderId, state.orderName, true, { isConsultation: state.isConsultation, serviceType: state.serviceType });
+                } else if (state.action === 'unified-status') {
+                    // [UNIFIED-BTN] بعد التنفيذ، _updateUnifiedButton تُعيد رسم الشريط للمرحلة الجديدة
+                    // وتُعيد المقبض لبداية الشريط تلقائياً بنفسها — لا حاجة لإعادة ضبط يدوي هنا
+                    // [FIX-SWIPE-COOLDOWN] القفل والعدّاد يبدآن فقط بعد اكتمال السلسلة الكاملة
+                    // (تسجيل المرحلة + إعادة المزامنة من القاعدة)، وإلا فإن إعادة رسم الزر التي تحدث
+                    // في نهاية handleUnifiedStatusClick تمحو عرض العدّاد فوراً قبل أن يظهر للمستخدم
+                    if (typeof handleUnifiedStatusClick === 'function') {
+                        Promise.resolve(handleUnifiedStatusClick()).finally(() => {
+                            const _labelEl = document.getElementById('unified-status-swipe-label');
+                            const _trackEl = document.getElementById('unified-status-swipe-track');
+                            _startSwipeCooldown(_trackEl, _labelEl);
+                        });
+                    }
+                }
+            } else {
+                _swReset(state);
+            }
+        }
+        document.addEventListener('pointerup', _swEnd, { passive: true });
+        document.addEventListener('pointercancel', _swEnd, { passive: true });
+    })();
+
+
+    async function acceptOrder(id, restaurantName, skipConfirmModal, preFetchedFlags) {
         if (_acceptOrderPending) return;
         if(currentOrderID) return siteNotify("أنهِ الطلب الحالي أولاً يا صقر! 🦅");
         _acceptOrderPending = true;
@@ -3941,10 +4370,41 @@
         if (!window._acceptedOrderIds) window._acceptedOrderIds = new Set();
         window._acceptedOrderIds.add(id);
         // ===== نهاية تسجيل القبول =====
+
+        // [PERF-FIX-INSTANT-ACCEPT] مسار السحب المباشر يملك بالفعل is_consultation/service_type من نفس
+        // بيانات القائمة المحمَّلة أصلاً (لا حاجة لجلبها مرة أخرى) — نتحقق منها فوراً بلا أي شبكة، ونمضي
+        // مباشرة لعملية القبول الحقيقية دون هذا الاستعلام الإضافي الذي كان يُنفَّذ دائماً حتى في مسار
+        // السحب رغم أن confirmAcceptOrder يُجري تحققاً مكافئاً بنفسه أصلاً (كان تكراراً حقيقياً لنفس الفحص)
+        if (skipConfirmModal && preFetchedFlags) {
+            if (preFetchedFlags.isConsultation) { siteNotify("هذا الطلب استشارة صيدلانية فقط، لا يمكن قنصه ❌"); refreshOrders(); _acceptOrderPending = false; return; }
+            if (preFetchedFlags.serviceType === 'pickup') { siteNotify("هذا طلب استلام ذاتي من المطعم — غير متاح للمندوبين ❌"); refreshOrders(); _acceptOrderPending = false; return; }
+            try {
+                await confirmAcceptOrder(id, restaurantName, true);
+            } finally {
+                _acceptOrderPending = false;
+            }
+            return;
+        }
+
         const { data: orderToCheck } = await supabaseClient.from('sh_public_orders').select('*').eq('id', id).single();
         // --- فلتر الاستشارة: منع قبول أي طلب استشارة حتى لو وصل بطريقة غير متوقعة ---
         if(orderToCheck && orderToCheck.is_consultation === true) { siteNotify("هذا الطلب استشارة صيدلانية فقط، لا يمكن قنصه ❌"); refreshOrders(); return; }
+        // [FIX-PICKUP-LEAK] حماية أخيرة: طلب استلام من المطعم لا يجوز قبوله من أي مندوب إطلاقاً
+        if(orderToCheck && orderToCheck.service_type === 'pickup') { siteNotify("هذا طلب استلام ذاتي من المطعم — غير متاح للمندوبين ❌"); refreshOrders(); return; }
+        if(orderToCheck && orderToCheck.status === 'cancelled') { siteNotify("❌ تم إلغاء هذا الطلب بواسطة العميل"); refreshOrders(); return; }
         if(orderToCheck && orderToCheck.status !== 'searching' && orderToCheck.status !== 'pending') { siteNotify("للأسف! سبقك أحد الصقور وقنص الطلب 🦅"); refreshOrders(); return; }
+
+        // [FIX-SWIPE-DIRECT-ACCEPT] السحب الفعلي على الشريط هو بحد ذاته فعل قبول واضح ومقصود — لا حاجة
+        // لعرض شاشة تأكيد إضافية بعده. نستدعي القبول الفعلي مباشرة دون بناء/عرض مودال "تفاصيل قبل القنص"،
+        // مع الإبقاء على كل الفحوصات والحمايات السابقة كما هي.
+        if (skipConfirmModal) {
+            try {
+                await confirmAcceptOrder(id, restaurantName, true);
+            } finally {
+                _acceptOrderPending = false;
+            }
+            return;
+        }
 
         // --- ثالثاً: إظهار شاشة معلومات "قنص الطلب" قبل القبول ---
         // حساب المسافة بين المتجر والعميل
@@ -4052,18 +4512,26 @@
         document.querySelector('.app-shell').appendChild(snatchModal);
     }
 
-    async function confirmAcceptOrder(id, restaurantName) {
+    async function confirmAcceptOrder(id, restaurantName, skipValidationFetch) {
         // إغلاق مودال المعلومات
         const snatchModal = document.getElementById('snatch-info-modal');
         if(snatchModal) snatchModal.remove();
 
         if(currentOrderID) return siteNotify("أنهِ الطلب الحالي أولاً يا صقر! 🦅");
 
-        // إعادة فحص الحالة قبل القبول الفعلي
-        const { data: latestCheck } = await supabaseClient.from('sh_public_orders').select('status, is_consultation, pickup_lat, pickup_lng, lat, lng').eq('id', id).single();
-        if(latestCheck && latestCheck.is_consultation === true) { siteNotify("هذا الطلب استشارة صيدلانية فقط، لا يمكن قنصه ❌"); refreshOrders(); return; }
-        if(latestCheck && latestCheck.status !== 'searching' && latestCheck.status !== 'pending') { siteNotify("للأسف! سبقك أحد الصقور وقنص الطلب 🦅"); refreshOrders(); return; }
-        
+        // [PERF-FIX-INSTANT-ACCEPT] عند القدوم من مسار السحب المباشر، الفحص جرى بالفعل في acceptOrder
+        // من بيانات القائمة المحمَّلة أصلاً (بلا شبكة) — تكرار هذا الاستعلام هنا لا داعي له إطلاقاً،
+        // لأن حماية "هل الطلب لا يزال متاحاً فعلياً؟" الحقيقية تتم أصلاً عبر شرط .in('status', ...)
+        // الذري في تحديث القبول نفسه أدناه، لا عبر هذا الفحص المسبق (الذي كان دائماً عرضة لأن يصبح
+        // قديماً بأجزاء من الثانية على أي حال).
+        if (!skipValidationFetch) {
+            const { data: latestCheck } = await supabaseClient.from('sh_public_orders').select('status, is_consultation, service_type').eq('id', id).single();
+            if(latestCheck && latestCheck.is_consultation === true) { siteNotify("هذا الطلب استشارة صيدلانية فقط، لا يمكن قنصه ❌"); refreshOrders(); return; }
+            if(latestCheck && latestCheck.service_type === 'pickup') { siteNotify("هذا طلب استلام ذاتي من المطعم — غير متاح للمندوبين ❌"); refreshOrders(); return; }
+            if(latestCheck && latestCheck.status === 'cancelled') { siteNotify("❌ تم إلغاء هذا الطلب بواسطة العميل"); refreshOrders(); return; }
+            if(latestCheck && latestCheck.status !== 'searching' && latestCheck.status !== 'pending') { siteNotify("للأسف! سبقك أحد الصقور وقنص الطلب 🦅"); refreshOrders(); return; }
+        }
+
         const driverName = currentUserData.name || "صقر شاهين";
         const driverPhone = currentUserData.phone || "00000000";
 
@@ -4072,49 +4540,15 @@
         const _driverLatAtAccept = window._lastKnownLat || null;
         const _driverLngAtAccept = window._lastKnownLng || null;
 
-        // ===== FIX-LOC-DRIVER: نسخ موقع المتجر من المطعم إلى الطلب عند القبول =====
-        let _storePickupLat = null, _storePickupLng = null, _storeResAddr = null;
-        try {
-            // جلب بيانات الطلب لمعرفة restaurant_id
-            const { data: _orderForStore } = await supabaseClient
-                .from('sh_public_orders')
-                .select('restaurant_id, pickup_lat, pickup_lng, res_address, res_type')
-                .eq('id', id).maybeSingle();
-            // إذا الطلب لم تكن له إحداثيات متجر — نجلبها من جدول المطاعم
-            if (_orderForStore && !_orderForStore.pickup_lat && _orderForStore.restaurant_id) {
-                const _resTbl = (_orderForStore.res_type === 'pharmacy' || _orderForStore.res_type === 'pharmacy_delivery')
-                    ? 'pharmacies' : 'restaurants';
-                const { data: _resRow } = await supabaseClient
-                    .from(_resTbl)
-                    .select('pickup_lat, pickup_lng, maps_url, res_address, address')
-                    .eq('id', _orderForStore.restaurant_id).maybeSingle();
-                if (_resRow) {
-                    _storePickupLat  = _resRow.pickup_lat  || null;
-                    _storePickupLng  = _resRow.pickup_lng  || null;
-                    _storeResAddr    = _resRow.res_address || _resRow.address || _resRow.maps_url || null;
-                    // [FIX-MAPS-URL] إذا لم تتوفر إحداثيات محفوظة لكن يوجد رابط Google Maps، نستخرج الإحداثيات منه
-                    if ((!_storePickupLat || !_storePickupLng) && _resRow.maps_url) {
-                        const _resolved = await _resolveMapsUrlCoords(_resRow.maps_url);
-                        if (_resolved) {
-                            _storePickupLat = _resolved.lat;
-                            _storePickupLng = _resolved.lng;
-                            // حفظ الإحداثيات المستخرجة في جدول المطعم نفسه لتفادي إعادة الاستخراج لاحقاً (تصحيح ذاتي للبيانات)
-                            try { await supabaseClient.from(_resTbl).update({ pickup_lat: _resolved.lat, pickup_lng: _resolved.lng }).eq('id', _orderForStore.restaurant_id); } catch(_e2) {}
-                        }
-                    }
-                }
-            } else if (_orderForStore) {
-                // الإحداثيات موجودة بالفعل في الطلب
-                _storePickupLat = _orderForStore.pickup_lat;
-                _storePickupLng = _orderForStore.pickup_lng;
-                _storeResAddr   = _orderForStore.res_address;
-            }
-        } catch (_locErr) {}
-        // ===== نهاية FIX-LOC-DRIVER =====
-
-        const _acceptUpdate = { 
-            status: 'accepted', 
-            driver_id: currentUserData.id, 
+        // [PERF-FIX-INSTANT-ACCEPT] الحقل الحرج الوحيد قبل الانتقال للشاشة هو تحديث حالة القبول نفسه
+        // (المحمي ضد التسابق). كل ما عدا ذلك — موقع المطعم، التحديث الثانوي لجدول orders، تسجيل
+        // الدوام، إشعار العميل، رسالة الحالة، إعادة الاتصال — لا علاقة له بقرار "هل قُبل الطلب أم لا"،
+        // فلا يجوز أن يُبقي المندوب منتظراً على الشاشة بسببه. هذه العمليات تنتقل الآن للخلفية بعد
+        // الانتقال المباشر لشاشة الطلب، بدل تنفيذها بالتسلسل (كل واحدة تنتظر التي قبلها) قبله — وهذا
+        // بالضبط كان سبب التأخير الملموس (حتى 10 ثوانٍ) الذي وصفته.
+        const _acceptUpdate = {
+            status: 'accepted',
+            driver_id: currentUserData.id,
             driver_phone: driverPhone,
             driver_name: driverName,
             restaurant_name: restaurantName,
@@ -4123,55 +4557,128 @@
             driver_lng_at_accept: _driverLngAtAccept,
             driver_stage: 'to_restaurant' // [MAPBOX-TRACK] المرحلة الأولى: متجه للمطعم
         };
-        if (_storePickupLat) { _acceptUpdate.pickup_lat = _storePickupLat; _acceptUpdate.pickup_lng = _storePickupLng; }
-        if (_storeResAddr)   { _acceptUpdate.res_address = _storeResAddr; }
 
-        const { error: error1 } = await supabaseClient.from('sh_public_orders').update(_acceptUpdate).eq('id', id);
-        
-        const { error: error2 } = await supabaseClient.from('orders').update({ 
-            status: 'accepted', 
-            driver_id: currentUserData.id, 
-            driver_phone: driverPhone,
-            driver_name: driverName,
-            restaurant_name: restaurantName,
-            accepted_at: _acceptedAtTime
-        }).eq('id', id);
+        // [FIX-RACE-CONDITION] حماية ذرّية حقيقية ضد قبول مندوبين لنفس الطلب في نفس اللحظة — هذا هو
+        // الاستعلام الحرج الوحيد الذي يستحق انتظاره فعلياً قبل عرض شاشة الطلب.
+        // [PERF-FIX-MERGE-FETCH] select('*') بدل select('id') — نحصل على بيانات الطلب كاملة في نفس
+        // الاستدعاء، فلا نحتاج استعلاماً منفصلاً لاحقاً فقط لملء شاشة الطلب (reconnectActiveOrder)
+        const { data: _acceptedRows, error: error1 } = await supabaseClient.from('sh_public_orders')
+            .update(_acceptUpdate).eq('id', id).in('status', ['searching', 'pending']).select('*');
 
-        if(!error1 && !error2) {
-            currentOrderID = id;
-            localStorage.setItem('active_order_id', id);
-            // ===== تسجيل قبول الطلب في سجل الدوام =====
-            const _respSeconds = window._orderShownAt && window._orderShownAt[id]
-                ? Math.round((_acceptTime - window._orderShownAt[id]) / 1000) : 0;
-            const { data: _acceptedOrderData } = await supabaseClient.from('sh_public_orders').select('created_at,restaurant_name,res,customer_name,customer_id').eq('id', id).maybeSingle();
-            if (_acceptedOrderData) await _logAcceptedOrderDuringShift(id, _acceptedOrderData, _respSeconds);
-            // ===== FIX-ACCEPT-1: إرسال إشعار للعميل فوراً عند القبول =====
-            try {
-                if (_acceptedOrderData && _acceptedOrderData.customer_id) {
-                    await supabaseClient.from('notifications').insert([{
-                        user_id: _acceptedOrderData.customer_id,
-                        message: '✅ تم قبول طلبك من قبل المندوب ' + driverName + '! هو في الطريق إليك 🦅',
-                        is_read: false,
-                        created_at: new Date().toISOString()
-                    }]);
-                }
-            } catch(_nErr) {}
-            // ===== نهاية إشعار العميل =====
-            // [DRIVER-STATUS-MSG] رسالة ثابتة في دردشة الطلب — تظهر للعميل في منطقة حالة الطلب
-            await _sendDriverStatusMsg(id, '✅ استلمت طلبك، في طريقي إلى المطعم 🏪');
-            // ===== نهاية تسجيل الدوام =====
-            // ===== تسجيل موقع القبول محذوف =====
-            await reconnectActiveOrder(id);
-            initSystem(); 
-            nav('p-active-order');
-            refreshOrders();
-            // ===== FIX-POLL-DRV: بدء Polling احتياطي للطلب النشط =====
-            _startActiveOrderPoll(id);
-            siteNotify("تم قنص الطلب بنجاح! 🦅");
-        } else {
-            const errMsg = error1?.message || error2?.message || "فشل القنص";
-            siteNotify("فشل القنص: " + errMsg);
+        if (error1) {
+            console.error('[FIX-RACE-CONDITION] خطأ أثناء محاولة قبول الطلب:', error1);
+            siteNotify('⚠️ حدث خطأ أثناء محاولة قبول الطلب، حاول مجدداً');
+            _acceptOrderPending = false;
+            return;
         }
+        if (!_acceptedRows || _acceptedRows.length === 0) {
+            // [FIX-RACE-CONDITION] لم يتأثر أي صف — يعني أن حالة الطلب تغيّرت (قنصه مندوب آخر أو ألغاه
+            // العميل) في اللحظة الدقيقة قبل وصول هذا التحديث. نتحقق من السبب الحقيقي فوراً لعرض رسالة
+            // دقيقة بدل رسالة عامة قد تكون مضلِّلة (خصوصاً لو كان السبب إلغاء العميل، لا مندوباً آخر)
+            let _rejectMsg = 'للأسف! سبقك أحد الصقور وقنص الطلب 🦅';
+            try {
+                const { data: _realStatus } = await supabaseClient.from('sh_public_orders').select('status').eq('id', id).maybeSingle();
+                if (_realStatus && _realStatus.status === 'cancelled') {
+                    _rejectMsg = '❌ تم إلغاء هذا الطلب بواسطة العميل';
+                }
+            } catch(_e) {}
+            siteNotify(_rejectMsg);
+            window._acceptedOrderIds && window._acceptedOrderIds.delete(id);
+            _acceptOrderPending = false;
+            refreshOrders();
+            return;
+        }
+
+        // ===== [PERF-FIX-INSTANT-ACCEPT] نجح القبول — انتقال فوري لشاشة الطلب الآن =====
+        currentOrderID = id;
+        localStorage.setItem('active_order_id', id);
+        nav('p-active-order');
+        // [PERF-FIX-MERGE-FETCH] الصف الكامل للطلب وصلنا بالفعل ضمن رد تحديث القبول أعلاه (select('*'))
+        // — نستخدمه مباشرة لملء شاشة الطلب دون أي استعلام إضافي منفصل
+        await reconnectActiveOrder(id, _acceptedRows[0]);
+        refreshOrders();
+        _startActiveOrderPoll(id);
+        siteNotify("تم قنص الطلب بنجاح! 🦅");
+
+        // ===== كل ما يلي يعمل في الخلفية دون أي تأثير على سرعة الانتقال أعلاه =====
+        (async () => {
+            try {
+                // ===== FIX-LOC-DRIVER: نسخ موقع المتجر من المطعم إلى الطلب (تحديث لاحق، غير حرج للتوقيت) =====
+                let _storePickupLat = null, _storePickupLng = null, _storeResAddr = null;
+                try {
+                    const { data: _orderForStore } = await supabaseClient
+                        .from('sh_public_orders')
+                        .select('restaurant_id, pickup_lat, pickup_lng, res_address, res_type')
+                        .eq('id', id).maybeSingle();
+                    if (_orderForStore && !_orderForStore.pickup_lat && _orderForStore.restaurant_id) {
+                        const _resTbl = (_orderForStore.res_type === 'pharmacy' || _orderForStore.res_type === 'pharmacy_delivery')
+                            ? 'pharmacies' : 'restaurants';
+                        const { data: _resRow } = await supabaseClient
+                            .from(_resTbl)
+                            .select('pickup_lat, pickup_lng, maps_url, res_address, address')
+                            .eq('id', _orderForStore.restaurant_id).maybeSingle();
+                        if (_resRow) {
+                            _storePickupLat  = _resRow.pickup_lat  || null;
+                            _storePickupLng  = _resRow.pickup_lng  || null;
+                            _storeResAddr    = _resRow.res_address || _resRow.address || _resRow.maps_url || null;
+                            if ((!_storePickupLat || !_storePickupLng) && _resRow.maps_url) {
+                                const _resolved = await _resolveMapsUrlCoords(_resRow.maps_url);
+                                if (_resolved) {
+                                    _storePickupLat = _resolved.lat;
+                                    _storePickupLng = _resolved.lng;
+                                    try { await supabaseClient.from(_resTbl).update({ pickup_lat: _resolved.lat, pickup_lng: _resolved.lng }).eq('id', _orderForStore.restaurant_id); } catch(_e2) {}
+                                }
+                            }
+                        }
+                    } else if (_orderForStore) {
+                        _storePickupLat = _orderForStore.pickup_lat;
+                        _storePickupLng = _orderForStore.pickup_lng;
+                        _storeResAddr   = _orderForStore.res_address;
+                    }
+                    if (_storePickupLat || _storeResAddr) {
+                        const _locUpdate = {};
+                        if (_storePickupLat) { _locUpdate.pickup_lat = _storePickupLat; _locUpdate.pickup_lng = _storePickupLng; }
+                        if (_storeResAddr)   { _locUpdate.res_address = _storeResAddr; }
+                        await supabaseClient.from('sh_public_orders').update(_locUpdate).eq('id', id);
+                    }
+                } catch (_locErr) {}
+                // ===== نهاية FIX-LOC-DRIVER =====
+
+                const { error: error2 } = await supabaseClient.from('orders').update({
+                    status: 'accepted',
+                    driver_id: currentUserData.id,
+                    driver_phone: driverPhone,
+                    driver_name: driverName,
+                    restaurant_name: restaurantName,
+                    accepted_at: _acceptedAtTime
+                }).eq('id', id);
+                if (error2) console.error('[FIX-RACE-CONDITION] فشل تحديث جدول orders الثانوي (لا يؤثر على نجاح القبول الأساسي):', error2);
+
+                // ===== تسجيل قبول الطلب في سجل الدوام =====
+                const _respSeconds = window._orderShownAt && window._orderShownAt[id]
+                    ? Math.round((Date.now() - window._orderShownAt[id]) / 1000) : 0;
+                const { data: _acceptedOrderData } = await supabaseClient.from('sh_public_orders').select('created_at,restaurant_name,res,customer_name,customer_id').eq('id', id).maybeSingle();
+                if (_acceptedOrderData) await _logAcceptedOrderDuringShift(id, _acceptedOrderData, _respSeconds);
+                // ===== FIX-ACCEPT-1: إرسال إشعار للعميل فوراً عند القبول =====
+                try {
+                    if (_acceptedOrderData && _acceptedOrderData.customer_id) {
+                        await supabaseClient.from('notifications').insert([{
+                            user_id: _acceptedOrderData.customer_id,
+                            message: '✅ تم قبول طلبك من قبل المندوب ' + driverName + '! هو في الطريق إليك 🦅',
+                            is_read: false,
+                            created_at: new Date().toISOString()
+                        }]);
+                    }
+                } catch(_nErr) {}
+                // ===== نهاية إشعار العميل =====
+                // [DRIVER-STATUS-MSG] رسالة ثابتة في دردشة الطلب — تظهر للعميل في منطقة حالة الطلب
+                await _sendDriverStatusMsg(id, '✅ استلمت طلبك، في طريقي إلى المطعم 🏪');
+                // ===== نهاية تسجيل الدوام =====
+                initSystem();
+            } catch(_bgErr) {
+                console.error('[PERF-FIX-INSTANT-ACCEPT] خطأ في مهام الخلفية بعد القبول (لا يؤثر على القبول نفسه):', _bgErr);
+            }
+        })();
     }
 
     // [DRIVER-STATUS-MSG] دالة موحّدة لإرسال رسالة حالة ثابتة للعميل
@@ -4233,9 +4740,12 @@
         // [WORKFLOW-LOCK] محاولة تنفيذ ذرّية: لن تنجح إلا إذا كانت هذه أول مرحلة (driver_step=0) فعلاً
         const advanced = await _tryAdvanceStep(1, { driver_stage: 'arrived_restaurant' });
         if (!advanced) { if (btn) btn.disabled = false; return; }
-        const ok = await _sendDriverStatusMsg(currentOrderID, '🏪 وصلت المطعم');
+        // [FIX-SWIPE-INSTANT-STAGE] تحديث الواجهة فوراً بمجرد نجاح المرحلة الحرجة — لا ننتظر إرسال
+        // رسالة الحالة للعميل (شبكة إضافية) قبل تحرير الشريط للمرحلة التالية
         _lockButtonsByStep(1);
-        if (!ok) siteNotify('⚠️ تم تسجيل المرحلة، لكن تعذّر إرسال إشعار للعميل');
+        _sendDriverStatusMsg(currentOrderID, '🏪 وصلت المطعم').then(ok => {
+            if (!ok) siteNotify('⚠️ تم تسجيل المرحلة، لكن تعذّر إرسال إشعار للعميل');
+        });
     }
 
     // [DRIVER-STATUS-MSG] الزر 2: طلب الطلب من المطعم (بانتظار التجهيز)
@@ -4245,9 +4755,10 @@
         if (btn) { btn.disabled = true; }
         const advanced = await _tryAdvanceStep(2, {});
         if (!advanced) { if (btn) btn.disabled = false; return; }
-        const ok = await _sendDriverStatusMsg(currentOrderID, '📝 طلبت الطلب من المطعم، بانتظار التجهيز');
         _lockButtonsByStep(2);
-        if (!ok) siteNotify('⚠️ تم تسجيل المرحلة، لكن تعذّر إرسال إشعار للعميل');
+        _sendDriverStatusMsg(currentOrderID, '📝 طلبت الطلب من المطعم، بانتظار التجهيز').then(ok => {
+            if (!ok) siteNotify('⚠️ تم تسجيل المرحلة، لكن تعذّر إرسال إشعار للعميل');
+        });
     }
 
     // [DRIVER-STATUS-MSG] الزر 3: استلام الطلب من المطعم + بدء التوجه للعميل (مرحلتان معاً)
@@ -4260,17 +4771,21 @@
         const advanced = await _tryAdvanceStep(3, { driver_stage: 'to_customer', picked_up_at: new Date().toISOString() });
         _dbgLine('استلمت الطلب: نتيجة _tryAdvanceStep = ' + advanced);
         if (!advanced) { if (btn) btn.disabled = false; return; }
-        _dbgLine('استلمت الطلب: إرسال الرسالة 1...');
-        const ok1 = await _sendDriverStatusMsg(currentOrderID, '📦 استلمت الطلب');
-        _dbgLine('استلمت الطلب: نتيجة الرسالة 1 = ' + ok1);
-        await new Promise(r => setTimeout(r, 600));
-        _dbgLine('استلمت الطلب: إرسال الرسالة 2...');
-        const ok2 = await _sendDriverStatusMsg(currentOrderID, '🛵 في طريقي إليك الآن');
-        _dbgLine('استلمت الطلب: نتيجة الرسالة 2 = ' + ok2);
         _lockButtonsByStep(3);
-        if (!ok1 && !ok2) siteNotify('⚠️ تم تسجيل المرحلة، لكن تعذّر إرسال إشعار للعميل');
         // [NAV-AUTO-SWITCH] إن كانت صفحة الملاحة مفتوحة حالياً، نبدّل الوجهة فوراً للعميل بدون أي Refresh
         try { _navSwitchToCustomerDestination(); } catch(e) {}
+        // [FIX-SWIPE-INSTANT-STAGE] رسالتا الحالة (والفاصل الزمني بينهما لسهولة قراءتهما في محادثة
+        // العميل) تعملان الآن في الخلفية بالكامل — لا تؤخّران تحرير الشريط للمرحلة التالية إطلاقاً
+        (async () => {
+            _dbgLine('استلمت الطلب: إرسال الرسالة 1...');
+            const ok1 = await _sendDriverStatusMsg(currentOrderID, '📦 استلمت الطلب');
+            _dbgLine('استلمت الطلب: نتيجة الرسالة 1 = ' + ok1);
+            await new Promise(r => setTimeout(r, 600));
+            _dbgLine('استلمت الطلب: إرسال الرسالة 2...');
+            const ok2 = await _sendDriverStatusMsg(currentOrderID, '🛵 في طريقي إليك الآن');
+            _dbgLine('استلمت الطلب: نتيجة الرسالة 2 = ' + ok2);
+            if (!ok1 && !ok2) siteNotify('⚠️ تم تسجيل المرحلة، لكن تعذّر إرسال إشعار للعميل');
+        })();
     }
 
     // [DRIVER-STATUS-MSG] الزر 4: وصول المندوب للعميل
@@ -4281,9 +4796,10 @@
         // [MAPBOX-TRACK] المرحلة الثالثة: المندوب وصل لموقع العميل
         const advanced = await _tryAdvanceStep(4, { driver_stage: 'arrived' });
         if (!advanced) { if (btn) btn.disabled = false; return; }
-        const ok = await _sendDriverStatusMsg(currentOrderID, '🦅 وصلت! بانتظارك الآن لتسليم طلبك');
         _lockButtonsByStep(4);
-        if (!ok) siteNotify('⚠️ تم تسجيل المرحلة، لكن تعذّر إرسال إشعار للعميل');
+        _sendDriverStatusMsg(currentOrderID, '🦅 وصلت! بانتظارك الآن لتسليم طلبك').then(ok => {
+            if (!ok) siteNotify('⚠️ تم تسجيل المرحلة، لكن تعذّر إرسال إشعار للعميل');
+        });
     }
 
     async function cancelOrder() {
@@ -4322,28 +4838,30 @@
         if(!reason) { siteNotify("يرجى كتابة سبب الإلغاء أولاً ⚠️"); return; }
         if(!currentOrderID) return;
         const btn = document.querySelector('#cancel-order-modal .btn-gold');
-        if(btn) { btn.disabled = true; btn.innerText = "جاري الإلغاء..."; }
+        if(btn) { btn.disabled = true; btn.innerText = "جاري الإرسال..."; }
         try {
-            const cancelNote = `ملغي من المندوب | السبب: ${reason}`;
-            await supabaseClient.from('sh_public_orders').update({ status: 'cancelled', cancel_reason: reason, restaurant_note: cancelNote, driver_stage: null }).eq('id', currentOrderID);
-            await supabaseClient.from('orders').update({ status: 'cancelled', cancel_reason: reason }).eq('id', currentOrderID);
-            siteNotify("تم إلغاء الطلب. سبب الإلغاء تم حفظه. 🦅");
-            currentOrderID = null;
-            localStorage.removeItem('active_order_id');
-            // ===== FIX-ORDERS-BAR-CANCEL: تصفير قفلات شريط الطلبات =====
-            _finishOrderPending = false;
-            _acceptOrderPending = false;
-            _refreshOrdersLock  = false;
-            if (window._delivPollInterval)  { clearInterval(window._delivPollInterval);  window._delivPollInterval  = null; }
-            if (window._activePollInterval) { clearInterval(window._activePollInterval); window._activePollInterval = null; }
-            if (!refreshInterval) startRefreshTimer();
-            // ===== نهاية FIX-ORDERS-BAR-CANCEL =====
+            // [FIX-ORDER-CLOSE-POLICY] المندوب لا يملك صلاحية إغلاق أو إخفاء الطلب مباشرة بعد الآن —
+            // الطريقتان الوحيدتان المسموحتان لإغلاق الطلب هما: كود التحقق الصحيح عند التسليم الفعلي، أو
+            // إغلاق الإدارة له يدوياً من لوحتها. طلب المندوب هنا يُسجَّل فقط كـ"طلب مراجعة" للإدارة —
+            // الطلب يبقى نشطاً ومرئياً للعميل والمندوب حتى تراجعه الإدارة وتقرر إغلاقه أو لا.
+            const cancelNote = `⚠️ طلب مراجعة من المندوب (لم يُغلَق) | السبب: ${reason}`;
+            await supabaseClient.from('sh_public_orders').update({
+                driver_cancel_requested: true,
+                driver_cancel_reason: reason,
+                driver_cancel_requested_at: new Date().toISOString(),
+                restaurant_note: cancelNote
+            }).eq('id', currentOrderID);
+            await supabaseClient.from('orders').update({
+                driver_cancel_requested: true,
+                driver_cancel_reason: reason
+            }).eq('id', currentOrderID).catch(() => {});
+            siteNotify("✅ تم إرسال طلب المراجعة للإدارة — الطلب سيبقى نشطاً حتى تراجعه الإدارة وتقرر إغلاقه");
             const modal = document.getElementById('cancel-order-modal');
             if(modal) modal.remove();
-            nav('p-main');
+            // الطلب يبقى نشطاً — لا نُصفّر currentOrderID ولا نغادر الشاشة، فقط نُحدّث العرض
             setTimeout(() => refreshOrders(), 200);
         } catch(err) {
-            siteNotify("فشل الإلغاء: " + err.message);
+            siteNotify("فشل إرسال طلب المراجعة: " + err.message);
             if(btn) { btn.disabled = false; btn.innerText = "تأكيد الإلغاء"; }
         }
     }
@@ -4370,7 +4888,9 @@
         
         if(id === 'p-main') refreshOrders();
         if(id === 'p-wallet') { loadOrderHistory(); updateWalletUI(); loadNewEarningsUI(); loadDailyClosingCard(); }
-        if(id === 'p-profile') { updateWalletUI(); loadDriverEarningsUI(); loadDriverTypeAndAttendance(); loadMyDocs(); }
+        if(id === 'p-profile') { updateWalletUI(); loadDriverEarningsUI(); loadDriverTypeAndAttendance(); }
+        // [FIX-DRIVER-INFO-PAGE] الصفحة الموحَّدة الجديدة لكل بيانات المندوب — تُحمَّل بياناتها هنا فقط
+        if(id === 'p-driver-info') { loadDriverInfoPage(); loadMyDocs(); _loadContractExtraFieldsUI(); }
         if(id === 'p-finance-history') { loadPaymentHistoryUI(); loadFinanceLedger(); }
         if(id === 'p-daily-closing') { loadDailyClosingArchive(); }
         // إفراغ القائمة عند فتح صفحة التاريخ وترك الخيار للمستخدم للتحميل اليدوي لتوفير الموارد
@@ -4450,6 +4970,18 @@
                     }
                     _prevLat = lat;
                     _prevLng = lng;
+
+                    // [PERF-FIX-GPS-THROTTLE] watchPosition قد يُطلَق عدة مرات في الثانية على بعض
+                    // الأجهزة — إرسال طلب شبكة (upsert) لكل إطلاق بلا أي تحديد كان يُغرق الشبكة
+                    // والمعالج بطلبات متلاحقة باستمرار، وهذا سبب مباشر وواضح لبطء الاستجابة العام في
+                    // كل أنحاء التطبيق (كل شيء آخر يتنافس مع هذه الطلبات المستمرة على نفس الاتصال).
+                    // الآن: تحديث الحالة المحلية (يُستخدَم في حسابات المسافة فوراً) يحدث دائماً في كل
+                    // إطلاق بلا أي تأخير، لكن الكتابة الفعلية لقاعدة البيانات تُقيَّد بحد أقصى مرة كل
+                    // 3 ثوانٍ — وهو تردد كافٍ تماماً لتتبع حي سلس دون إغراق الشبكة.
+                    const _nowGps = Date.now();
+                    if (!window._lastGpsUpsertAt) window._lastGpsUpsertAt = 0;
+                    if (_nowGps - window._lastGpsUpsertAt < 3000) return;
+                    window._lastGpsUpsertAt = _nowGps;
 
                     // ===== تحديث sh_admin_tracking مع بيانات إضافية =====
                     const _upsertRes = await supabaseClient.from(_TRACK_TABLE).upsert({
@@ -4817,7 +5349,7 @@
         if (!d || d.ordersCount === 0) {
             if (!confirm('لم تُنجز أي طلبات اليوم. هل تريد تنفيذ الإقفال على أي حال؟')) return;
         } else {
-            if (!confirm(`تأكيد إقفال اليوم:\n• ${d.ordersCount} طلب منجز\n• أرباح: ${Math.round(d.todayProfit).toLocaleString()} ل.س\n• كاش: ${Math.round(d.todayCash).toLocaleString()} ل.س\n• الرصيد الحالي: ${Math.round(d.walletNow).toLocaleString()} ل.س\n\n⚠️ رصيد المحفظة لن يتغير. هل تريد المتابعة؟`)) return;
+            if (!confirm(`هل أنت متأكد من تنفيذ الإقفال اليومي؟ سيتم أرشفة جميع بيانات اليوم والبدء بيوم عمل جديد.\n\n• ${d.ordersCount} طلب منجز\n• أرباح: ${Math.round(d.todayProfit).toLocaleString()} ل.س\n• كاش: ${Math.round(d.todayCash).toLocaleString()} ل.س\n• الرصيد الحالي: ${Math.round(d.walletNow).toLocaleString()} ل.س\n\n⚠️ رصيد المحفظة لن يتغير. هذه العملية لا يمكن التراجع عنها.`)) return;
         }
 
         const btn = document.getElementById('btn-execute-closing');
@@ -5061,7 +5593,7 @@
         if (window._shiftTimer)             { clearInterval(window._shiftTimer); window._shiftTimer = null; }
         if (window._shiftHeartbeat)         { clearInterval(window._shiftHeartbeat); window._shiftHeartbeat = null; }
         if (gpsWatch) { navigator.geolocation.clearWatch(gpsWatch); gpsWatch = null; }
-        _refreshOrdersLock = false; _acceptOrderPending = false; _finishOrderPending = false;
+        _releaseRefreshLock(); _acceptOrderPending = false; _finishOrderPending = false;
         // [FIX-LOGOUT-HANG] مسح البيانات المحلية وتسجيل الخروج أولاً بدون انتظار الشبكة
         const _logoutUserId = currentUserData && currentUserData.id ? currentUserData.id : 'default';
         const _savedScale = localStorage.getItem('app_scale');
@@ -5085,38 +5617,127 @@
         if (_logoutModal) _logoutModal.style.display = 'none';
     }
 
-    // ===== [NOTIF-FORCE] نظام طلب الإشعارات الإجباري =====
+    // ===== [NOTIF-FORCE] نظام طلب الإشعارات — مرة واحدة فقط عند أول تشغيل =====
+    // [FIX-NOTIF-PERMISSION-STALE] الفحص الحقيقي والوحيد الموثوق لحالة إذن الإشعارات:
+    // 1) إن وُجد جسر أندرويد أصلي (AndroidPermissions، أُضيف في المشروع الأصلي driver-app)، نعتمد
+    //    عليه حصرياً — لأنه يفحص الإذن الحقيقي من نظام أندرويد نفسه (ContextCompat.checkSelfPermission)
+    //    ولا يعتمد إطلاقاً على واجهة الويب Notification API التي أثبتت أنها غير موثوقة داخل WebView
+    //    (قد تستمر بإرجاع 'default' حتى بعد منح الإذن الحقيقي فعلياً من إعدادات النظام).
+    // 2) في حال تشغيل الصفحة كويب عادي (لا يوجد الجسر الأصلي)، نستخدم Notification.permission كحل
+    //    احتياطي فقط، وهذا سيناريو الويب العادي حيث تكون هذه الواجهة موثوقة فعلاً.
+    function _isNotifPermissionGrantedReal() {
+        try {
+            if (window.AndroidPermissions && typeof window.AndroidPermissions.isNotificationPermissionGranted === 'function') {
+                const granted = window.AndroidPermissions.isNotificationPermissionGranted();
+                console.log('[NOTIF-CHECK] فحص عبر الجسر الأصلي (Native Bridge) — النتيجة:', granted);
+                return !!granted;
+            }
+        } catch(e) { console.error('[NOTIF-CHECK] خطأ أثناء الفحص عبر الجسر الأصلي:', e); }
+        const webGranted = (typeof Notification !== 'undefined' && Notification.permission === 'granted');
+        console.log('[NOTIF-CHECK] لا يوجد جسر أصلي — الاعتماد على Notification.permission =', (typeof Notification !== 'undefined' ? Notification.permission : 'undefined'));
+        return webGranted;
+    }
+
+    // [FIX-NOTIF-REPEAT-ANNOYING] لا تظهر أكثر من مرة واحدة في نفس الجلسة (حتى لو استُدعيت الدالة من
+    // أكثر من نقطة تهيئة)، ولا تظهر مجدداً قبل مرور 24 ساعة كاملة إن اختار المندوب "لاحقاً" صراحةً —
+    // يحترم قرار المندوب بدل إزعاجه بنفس الشاشة في كل مرة يفتح فيها التطبيق
+    let _notifModalShownThisSession = false;
+
+    function _dismissNotifModal() {
+        const _modal = document.getElementById('notif-permission-modal');
+        if (_modal) _modal.style.display = 'none';
+        localStorage.setItem('shaheen_notif_dismissed_at', String(Date.now()));
+        console.log('[FIX-NOTIF-REPEAT-ANNOYING] المندوب اختار "لاحقاً" — لن تظهر الشاشة مجدداً قبل 24 ساعة');
+    }
+    window._dismissNotifModal = _dismissNotifModal;
+
+    function _wasRecentlyDismissed() {
+        const _lastDismiss = parseInt(localStorage.getItem('shaheen_notif_dismissed_at') || '0', 10);
+        const _hoursSince = (Date.now() - _lastDismiss) / (1000 * 60 * 60);
+        return _lastDismiss > 0 && _hoursSince < 24;
+    }
+
     function _showNotifModal() {
         const _modal = document.getElementById('notif-permission-modal');
         if (!_modal) return;
-        // إذا كانت الإشعارات ممنوحة مسبقاً — لا نعرض الشاشة
-        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-            // حفظ التوكن إذا لم يكن محفوظاً
+        if (_notifModalShownThisSession) {
+            console.log('[NOTIF-CHECK] _showNotifModal: عُرضت بالفعل هذه الجلسة — تجاوز');
+            return;
+        }
+        console.log('[NOTIF-CHECK] _showNotifModal: فحص الحالة الحقيقية عند فتح الشاشة...');
+        if (_isNotifPermissionGrantedReal()) {
+            console.log('[NOTIF-CHECK] الإذن ممنوح فعلياً — تجاوز شاشة الطلب مباشرة');
+            localStorage.setItem('shaheen_notif_granted', '1');
             if (currentUserData && typeof saveFCMTokenForDriver === 'function') {
                 saveFCMTokenForDriver(currentUserData.id);
             }
+            _modal.style.display = 'none';
             return;
         }
+        if (_wasRecentlyDismissed()) {
+            console.log('[NOTIF-CHECK] تم تجاوزها بواسطة المندوب مؤخراً ("لاحقاً") — لن تُعرض قبل مرور 24 ساعة');
+            return;
+        }
+        console.log('[NOTIF-CHECK] الإذن غير ممنوح فعلياً — عرض شاشة الطلب');
+        _notifModalShownThisSession = true;
         _modal.style.display = 'flex';
     }
+
+    // [FIX-NOTIF-PERMISSION-STALE] إعادة الفحص عند: العودة من صفحة الإعدادات (تغيّر رؤية الصفحة أو
+    // استعادة تركيز النافذة)، وعند استئناف التطبيق من الجانب الأصلي (Android onResume يستدعي هذه
+    // الدالة نفسها عبر evaluateJavascript إن وُجد الجسر الأصلي)
+    function _recheckNotifPermission() {
+        console.log('[NOTIF-CHECK] _recheckNotifPermission: إعادة فحص (استئناف التطبيق/العودة من الإعدادات)...');
+        const _modal = document.getElementById('notif-permission-modal');
+        if (!_modal || _modal.style.display !== 'flex') return; // الشاشة غير معروضة أصلاً، لا داعي للفحص
+        if (_isNotifPermissionGrantedReal()) {
+            console.log('[NOTIF-CHECK] تأكّد المنح بعد العودة — إغلاق شاشة الطلب والمتابعة');
+            localStorage.setItem('shaheen_notif_granted', '1');
+            if (currentUserData && typeof saveFCMTokenForDriver === 'function') {
+                saveFCMTokenForDriver(currentUserData.id);
+            }
+            _modal.style.display = 'none';
+            siteNotify('✅ تم تفعيل الإشعارات — ستصلك الطلبات الآن 🦅');
+        } else {
+            console.log('[NOTIF-CHECK] لا يزال الإذن غير ممنوح بعد العودة');
+        }
+    }
+    window._recheckNotifPermission = _recheckNotifPermission;
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) _recheckNotifPermission(); });
+    window.addEventListener('focus', _recheckNotifPermission);
 
     async function _requestNotifNow() {
         const _btn = document.getElementById('notif-allow-btn');
         const _statusTxt = document.getElementById('notif-status-text');
         if (_btn) { _btn.disabled = true; _btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الطلب...'; }
         if (_statusTxt) _statusTxt.innerText = '';
+        console.log('[NOTIF-CHECK] _requestNotifNow: ضغط زر "السماح الآن"');
+
+        // [FIX-NOTIF-PERMISSION-STALE] فحص حقيقي أولاً — قد يكون الإذن ممنوحاً بالفعل من زيارة سابقة
+        // لصفحة الإعدادات، فنتجاوز نافذة الطلب المكرَّرة مباشرة بدل استدعاء API قد لا يستجيب داخل WebView
+        if (_isNotifPermissionGrantedReal()) {
+            console.log('[NOTIF-CHECK] الإذن ممنوح فعلياً بالفحص المباشر — تجاوز الطلب والمتابعة فوراً');
+            localStorage.setItem('shaheen_notif_granted', '1');
+            if (currentUserData && typeof saveFCMTokenForDriver === 'function') saveFCMTokenForDriver(currentUserData.id);
+            const _modal0 = document.getElementById('notif-permission-modal');
+            if (_modal0) _modal0.style.display = 'none';
+            siteNotify('✅ تم تفعيل الإشعارات — ستصلك الطلبات الآن 🦅');
+            return;
+        }
+
         try {
             let _permission = 'default';
             // محاولة 1: Notification.requestPermission المعيارية
             if (typeof Notification !== 'undefined') {
                 _permission = await Notification.requestPermission();
             }
-            if (_permission === 'granted') {
-                // نجح — احفظ التوكن وأغلق الشاشة
+            console.log('[NOTIF-CHECK] نتيجة Notification.requestPermission():', _permission);
+            // [FIX-NOTIF-PERMISSION-STALE] بعد محاولة الطلب، أعد الفحص الحقيقي (لا نثق بالقيمة
+            // المُعادة من requestPermission داخل WebView وحدها — قد تكون خاطئة رغم منح الإذن فعلياً)
+            if (_permission === 'granted' || _isNotifPermissionGrantedReal()) {
                 if (currentUserData && typeof saveFCMTokenForDriver === 'function') {
                     saveFCMTokenForDriver(currentUserData.id);
                 }
-                // تحقق من التوكن النيتيف من Website2APK
                 const _nativeToken = localStorage.getItem('shaheen_fcm_token_native');
                 if (_nativeToken && currentUserData) {
                     supabaseClient.from('drivers').update({ fcm_token: _nativeToken }).eq('id', currentUserData.id).catch(() => {});
@@ -5126,19 +5747,31 @@
                 localStorage.setItem('shaheen_notif_granted', '1');
                 siteNotify('✅ تم تفعيل الإشعارات — ستصلك الطلبات الآن 🦅');
             } else if (_permission === 'denied') {
-                // مرفوض — نعرض تعليمات لإعادة التفعيل يدوياً
                 if (_btn) { _btn.disabled = false; _btn.innerHTML = '<i class="fas fa-redo"></i> أعد المحاولة'; }
-                if (_statusTxt) _statusTxt.innerHTML = '❌ تم رفض الإشعارات<br><span style="color:#e74c3c; font-size:10px;">افتح إعدادات الهاتف ← التطبيقات ← المتصفح ← الإشعارات ← فعّلها ثم اضغط أعد المحاولة</span>';
+                if (_statusTxt) _statusTxt.innerHTML = '❌ تم رفض الإشعارات<br><span style="color:#e74c3c; font-size:10px;">افتح إعدادات الهاتف ← التطبيقات ← صقر شاهين ← الإشعارات ← فعّلها، ثم ارجع لهذه الشاشة (ستُفحص تلقائياً) أو اضغط أعد المحاولة</span><br><button onclick="_openNotifSettings()" style="margin-top:8px; background:transparent; border:1px solid var(--gold); color:var(--gold); padding:8px 12px; border-radius:8px; font-size:10px; cursor:pointer;"><i class="fas fa-cog"></i> فتح إعدادات التطبيق مباشرة</button>';
             } else {
-                // default — أعد المحاولة
                 if (_btn) { _btn.disabled = false; _btn.innerHTML = '<i class="fas fa-bell"></i> السماح بالإشعارات الآن'; }
                 if (_statusTxt) _statusTxt.innerText = 'اضغط مرة أخرى وقبل الطلب في نافذة المتصفح';
             }
         } catch(_notifErr) {
+            console.error('[NOTIF-CHECK] استثناء أثناء طلب الإذن:', _notifErr);
             if (_btn) { _btn.disabled = false; _btn.innerHTML = '<i class="fas fa-bell"></i> السماح بالإشعارات الآن'; }
             if (_statusTxt) _statusTxt.innerText = 'حاول مرة أخرى';
         }
     }
+
+    // [FIX-NOTIF-PERMISSION-STALE] فتح إعدادات التطبيق مباشرة (عبر الجسر الأصلي إن وُجد) بدل تخيير
+    // المستخدم يتنقّل يدوياً بين قوائم الإعدادات
+    function _openNotifSettings() {
+        try {
+            if (window.AndroidPermissions && typeof window.AndroidPermissions.openAppSettings === 'function') {
+                window.AndroidPermissions.openAppSettings();
+                return;
+            }
+        } catch(e) { console.error('[NOTIF-CHECK] تعذّر فتح الإعدادات عبر الجسر الأصلي:', e); }
+        siteNotify('افتح إعدادات الهاتف يدوياً ← التطبيقات ← صقر شاهين ← الإشعارات');
+    }
+    window._openNotifSettings = _openNotifSettings;
     window._requestNotifNow = _requestNotifNow;
     window._showNotifModal  = _showNotifModal;
     // ===== [END-NOTIF-FORCE] =====
@@ -5416,11 +6049,12 @@
             const updatePublicTask = supabaseClient.from('sh_public_orders').update({ status: 'completed', driver_stage: null, driver_step: 5, delivered_at: new Date().toISOString() }).eq('id', currentOrderID);
             const updateOrdersTask = supabaseClient.from('orders').update({ status: 'completed' }).eq('id', currentOrderID);
             const [_resBal, _resChg, _resLedger, _resPub, _resOrd] = await Promise.all([updateBalanceTask, chargeLogTask, ledgerTask, updatePublicTask, updateOrdersTask]);
-            // [FIX-SILENT-LEDGER-FAIL] فحص ظاهر للخطأ بدل تجاهله بصمت — لو فشل تسجيل الأرباح المحاسبية
-            // (مثلاً بسبب عمود غير موجود في جدول ledger)، يجب أن يظهر تنبيه واضح وليس صمت كامل
+            // [FIX-SILENT-LEDGER-FAIL] الطلب نفسه اكتمل تسليمه بنجاح دائماً بغض النظر عن نتيجة هذا
+            // السجل المحاسبي الثانوي — فشل تسجيل ledger لا يجوز أن يُخيف المندوب برسالة خطأ تقنية
+            // طويلة بعد أن أنهى تسليمه بنجاح فعلاً؛ هذا شأن إداري/محاسبي خلفي فقط. نسجّله بوضوح في
+            // الكونسول للتشخيص، دون إزعاج المندوب بأي رسالة — بنفس أسلوب driver_earnings_logs تماماً.
             if (_resLedger && _resLedger.error) {
-                console.error('ledger insert failed:', _resLedger.error);
-                siteNotify('⚠️ تنبيه للإدارة: فشل تسجيل أرباح هذا الطلب محاسبياً (' + (_resLedger.error.message || _resLedger.error.code || 'خطأ غير معروف') + ') — الطلب اكتمل لكن الأرباح لم تُسجَّل في كشف الحساب');
+                console.error('[FIX-SILENT-LEDGER-FAIL] فشل تسجيل ledger (لا يؤثر على نجاح التسليم):', _resLedger.error);
             }
 
             // تحديث الأرقام التراكمية فوراً في الواجهة بعد إتمام الطلب
@@ -5527,17 +6161,21 @@
         4: { label: '<i class="fas fa-check-circle"></i> بانتظار تأكيد التسليم', bg: '#555', border: '#777', disabled: true }
     };
     function _updateUnifiedButton(step) {
-        const btn = document.getElementById('btn-unified-status');
-        if (!btn) return;
+        const track = document.getElementById('unified-status-swipe-track');
+        const label = document.getElementById('unified-status-swipe-label');
+        const iconEl = document.getElementById('unified-status-swipe-icon-color');
+        if (!track || !label) return;
         const safeStep = Math.max(0, Math.min(4, step || 0));
         const cfg = _UNIFIED_BTN_CFG[safeStep];
-        btn.innerHTML = cfg.label;
-        btn.style.background = cfg.bg;
-        btn.style.borderColor = cfg.border;
-        btn.disabled = !!cfg.disabled;
-        btn.style.opacity = cfg.disabled ? '0.55' : '1';
-        btn.style.cursor = cfg.disabled ? 'not-allowed' : 'pointer';
-        btn.setAttribute('data-step', String(safeStep));
+        label.innerHTML = cfg.label;
+        track.style.background = cfg.disabled ? 'rgba(85,85,85,0.35)' : 'rgba(0,0,0,0.35)';
+        track.style.borderColor = cfg.border;
+        track.setAttribute('data-disabled', cfg.disabled ? '1' : '0');
+        track.style.opacity = cfg.disabled ? '0.6' : '1';
+        if (iconEl) iconEl.style.color = cfg.bg;
+        track.setAttribute('data-step', String(safeStep));
+        // [UNIFIED-BTN] إعادة مقبض السحب لبداية الشريط عند كل تغيّر مرحلة، تمهيداً لسحب المرحلة التالية
+        if (typeof window._swResetSlider === 'function') window._swResetSlider(track);
     }
     // [UNIFIED-BTN] عند الضغط، نوزّع التنفيذ إلى الدالة الصحيحة حسب المرحلة الحالية المعروضة فعلياً على الزر
     function _dbgLine(msg) {
@@ -5545,10 +6183,10 @@
         if (el) el.innerText = new Date().toLocaleTimeString() + ' — ' + msg;
     }
     async function handleUnifiedStatusClick() {
-        const btn = document.getElementById('btn-unified-status');
-        const curStep = parseInt((btn && btn.getAttribute('data-step')) || '0', 10);
+        const track = document.getElementById('unified-status-swipe-track');
+        const curStep = parseInt((track && track.getAttribute('data-step')) || '0', 10);
         _dbgLine('بدء الضغط، المرحلة الحالية المعروضة = ' + curStep);
-        if (btn) btn.disabled = true;
+        if (track) track.setAttribute('data-disabled', '1'); // منع سحب آخر أثناء المعالجة
         // [FIX-NO-STUCK-BTN] أي استثناء غير متوقع داخل دالة التنفيذ يجب ألا يمنع إعادة تفعيل الزر أبداً
         try {
             if (curStep === 0) { _dbgLine('تنفيذ: وصلت المطعم...'); await markArrivedAtRestaurant(); }
@@ -5571,7 +6209,7 @@
             _lockButtonsByStep((fresh && fresh.driver_step) || 0);
         } catch(e) {
             _dbgLine('فشلت إعادة القراءة: ' + (e && e.message ? e.message : e));
-            if (btn) btn.disabled = false; // تحوّط أخير: لا يبقى الزر معطّلاً حتى لو فشلت إعادة القراءة نفسها
+            if (track) track.setAttribute('data-disabled', '0'); // تحوّط أخير: لا يبقى الشريط معطّلاً حتى لو فشلت إعادة القراءة نفسها
         }
     }
     // [WORKFLOW-LOCK] تنفيذ مرحلة بأمان: تحديث شرطي ذرّي في قاعدة البيانات (لا ينجح إلا إذا كانت المرحلة السابقة فعلاً هي الحالة الحالية)
@@ -5638,8 +6276,10 @@
         }
     }
 
-    async function reconnectActiveOrder(key) {
-        const { data: order } = await supabaseClient.from('sh_public_orders').select('*').eq('id', key).single();
+    async function reconnectActiveOrder(key, preFetchedOrder) {
+        // [PERF-FIX-MERGE-FETCH] إن تم تمرير بيانات الطلب مسبقاً (كما هو الحال مباشرة بعد القبول، حيث
+        // تعيد عملية التحديث نفسها الصف كاملاً)، لا داعي لأي استعلام إضافي — نستخدمها مباشرة
+        const order = preFetchedOrder || (await supabaseClient.from('sh_public_orders').select('*').eq('id', key).single()).data;
         if(order) {
             // [WORKFLOW-LOCK] تطبيق حالة القفل الحقيقية المحفوظة في قاعدة البيانات — وليس إعادة تفعيل عشوائية للأزرار
             _lockButtonsByStep(order.driver_step || 0);
@@ -5668,6 +6308,8 @@
             else if(order.res_type === 'wassayni') { typeIcon = '<i class="fas fa-paper-plane"></i>'; typeLabel = "صيني"; typeColor = "#2ecc71"; }
             document.getElementById('active-res-name').style.color = typeColor;
             document.getElementById('active-res-name').innerHTML = `${typeIcon} ${typeLabel}: ${escHtml(order.restaurant_name || order.res || order.res_name)}`;
+            // [INVOICE-REVISION] تحديث حالة زر طلب تعديل الفاتورة مع كل تحديث لتفاصيل الطلب النشط
+            try { _refreshInvoiceRevisionButtonState(); } catch(e) {}
             let discountInfo = order.discount > 0 ? `<br><div style="background:rgba(231,76,60,0.15);border:1px solid #e74c3c;border-radius:8px;padding:6px 10px;margin-top:5px;text-align:center;font-weight:bold;color:#e74c3c;font-size:10px;">⚠️ تم استخدام كود خصم على هذا الطلب: -${parseFloat(order.discount).toLocaleString()} ل.س</div>` : "";
             // X = فاتورة المتجر/الصيدلية - نستخرجها من order_details إذا كانت صيدلية
             let X = 0;
@@ -5704,7 +6346,23 @@
             const _shopLocStr = (order.pickup_lat && order.pickup_lng) ? `<br><small style="color:#3498db; font-size:9px;">🏪 موقع المتجر محدد GPS ✅</small>` : (order.res_address ? `<br><small style="color:#aaa; font-size:9px;">🏪 عنوان المتجر: ${escHtml(order.res_address)}</small>` : '');
             // [ORDER-NOTES] ملاحظات العميل على الطلب — تظهر بشكل بارز للمندوب إن وُجدت
             const _orderNotesStr = order.order_notes ? `<div style="background:rgba(234,179,8,.12); border:1px solid #eab308; border-radius:8px; padding:6px 8px; margin-top:6px;"><b style="color:#eab308; font-size:10px;"><i class="fas fa-sticky-note"></i> ملاحظة العميل:</b> <span style="font-size:10px; color:#fff;">${escHtml(order.order_notes)}</span></div>` : '';
-            document.getElementById('active-bill-info').innerHTML = `<small style="display:block; color:var(--gold); font-weight:bold; margin-bottom:3px;">رقم الطلب: #${escHtml(String(order.id))}</small><b>👤 العميل:</b> ${escHtml(order.customer_name)}${_clientLocStr}${_shopLocStr}<br><b>🏪 المطعم/المتجر:</b> ${escHtml(order.restaurant_name || order.res || order.res_name || '---')}<br><b>💊 فاتورة الصيدلية:</b> ${fmtSYP(X,{inline:true,size:12})}<br><b>🚗 سعر التوصيل:</b> ${fmtSYP(Y,{inline:true,size:12})}${_consultFeeLineActive}<br><b style="color:#3498db; font-size:13px;">💰 إجمالي الكاش المطلوب:</b> <span style="font-size:15px; font-weight:bold;">${fmtSYP(J,{inline:true,size:15})}</span> ${discountInfo}${_orderNotesStr}`;
+            // [FIX-DRIVER-ORDER-ITEMS] قائمة الأصناف المطلوبة بالتفصيل — كانت الفاتورة تعرض المجموع
+            // فقط دون تفصيل الأصناف نفسها، فلا يعرف المندوب ماذا طلب العميل بالضبط دون الرجوع لمكان آخر
+            let _itemsListHtml = '';
+            try {
+                const _itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (Array.isArray(order.items) ? order.items : []);
+                if (_itemsArr.length > 0) {
+                    _itemsListHtml = `<div style="background:rgba(0,0,0,0.25); border-radius:8px; padding:8px; margin-top:6px;">
+                        <b style="color:var(--gold); font-size:10px; display:block; margin-bottom:5px;"><i class="fas fa-utensils"></i> الأصناف المطلوبة:</b>
+                        ${_itemsArr.map(it => `
+                            <div style="display:flex; justify-content:space-between; font-size:10.5px; color:#eee; border-bottom:1px dashed rgba(255,255,255,0.08); padding:3px 0;">
+                                <span>${escHtml(String(it.p ?? it.price ?? '0'))} ل.س</span>
+                                <span>${escHtml(it.n || it.name || '')}${it.qty && it.qty > 1 ? ' × ' + it.qty : ''}${it.extras ? '<br><small style="color:#f39c12;">+ ' + escHtml(it.extras) + '</small>' : ''}</span>
+                            </div>`).join('')}
+                    </div>`;
+                }
+            } catch(_itemsErr) { console.error('[FIX-DRIVER-ORDER-ITEMS] تعذّر تحليل قائمة الأصناف:', _itemsErr); }
+            document.getElementById('active-bill-info').innerHTML = `<small style="display:block; color:var(--gold); font-weight:bold; margin-bottom:3px;">رقم الطلب: #${escHtml(String(order.id))}</small><b>👤 العميل:</b> ${escHtml(order.customer_name)}${_clientLocStr}${_shopLocStr}<br><b>🏪 المطعم/المتجر:</b> ${escHtml(order.restaurant_name || order.res || order.res_name || '---')}${_itemsListHtml}<br><b>🧾 ${escHtml(_billInvLabel)}:</b> ${fmtSYP(X,{inline:true,size:12})}<br><b>🚗 سعر التوصيل:</b> ${fmtSYP(Y,{inline:true,size:12})}${_consultFeeLineActive}<br><b style="color:#3498db; font-size:13px;">💰 إجمالي الكاش المطلوب:</b> <span style="font-size:15px; font-weight:bold;">${fmtSYP(J,{inline:true,size:15})}</span> ${discountInfo}${_orderNotesStr}`;
             // --- خامساً: عرض تصنيف نوع الطلب في تفاصيل الطلب النشط ---
             const typeBadgeHTML = `<div style="display:inline-block; background:rgba(0,0,0,0.3); color:${typeColor}; padding:3px 10px; border-radius:10px; font-size:10px; border:1px solid ${typeColor}; font-weight:bold; margin-top:4px;">${typeIcon} نوع: ${typeLabel}</div>`;
             document.getElementById('active-bill-info').innerHTML += typeBadgeHTML;
@@ -6174,6 +6832,9 @@
     }
     function _navHandlePosition(lat, lng) {
         if (!_navRoute) return;
+        // [NAV-GPS-DEBUG] تأكيد ظاهر للعين أن التحديثات تصل فعلاً وتتغيّر مع الحركة
+        const _dbgEl = document.getElementById('nav-gps-debug-line');
+        if (_dbgEl) _dbgEl.innerText = `GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)} — ${new Date().toLocaleTimeString('ar-SA')}`;
         let bearing = _navBearingCur;
         if (_navLastRawPos) {
             const moved = _navHaversine(_navLastRawPos.lat, _navLastRawPos.lng, lat, lng);
@@ -6201,41 +6862,23 @@
     }
     let _navOwnWatchId = null;
     function _navStartPositionFeed() {
-        // [FIX-NAV-LIVE-GPS] مراقبة موقع مستقلة وخاصة بصفحة الملاحة فقط — لا تعتمد على نظام تتبع
-        // "متاح للعمل" العام (الذي قد لا يكون فعّالاً وقت فتح الملاحة)، فتضمن عمل الملاحة دائماً
-        // بغض النظر عن أي حالة أخرى في التطبيق
-        if (_navOwnWatchId !== null) { try { navigator.geolocation.clearWatch(_navOwnWatchId); } catch(e) {} _navOwnWatchId = null; }
-        if (!navigator.geolocation) { console.error('[NAV-GPS] navigator.geolocation غير متاح في هذا المتصفح'); return; }
-        _navOwnWatchId = navigator.geolocation.watchPosition(
-            (pos) => {
-                const lat = pos.coords.latitude, lng = pos.coords.longitude;
-                // [FIX-NAV-LIVE-GPS] تحديث المتغيّرات العامة أيضاً — يستفيد منها باقي النظام (إرسال الموقع
-                // العام لقاعدة البيانات) من نفس قراءة GPS الحية، بدون ازدواج غير ضروري لطلبات الموقع
-                window._lastKnownLat = lat; window._lastKnownLng = lng;
-                window._lastKnownAccuracy = pos.coords.accuracy;
-                window._lastKnownHeading  = pos.coords.heading || 0;
-                window._lastKnownSpeed    = pos.coords.speed || 0;
-                _navHandlePosition(lat, lng);
-                // [FIX-NAV-LIVE-GPS] إرسال مباشر إلى قاعدة البيانات أيضاً — يضمن أن العميل والإدارة يريان
-                // الحركة حتى لو لم يكن نظام التتبع العام (متاح للعمل) يعمل لأي سبب في هذه اللحظة
-                if (currentUserData && currentUserData.id) {
-                    supabaseClient.from('sh_admin_tracking').upsert({
-                        id: currentUserData.id, lat: lat, lng: lng,
-                        accuracy: pos.coords.accuracy, speed: pos.coords.speed || 0, heading: pos.coords.heading || 0,
-                        last_seen: new Date().toISOString(), last_update: new Date().toISOString(),
-                        name: currentUserData.name, active_order_id: currentOrderID || null
-                    }).then(({ error }) => { if (error) console.error('[NAV-GPS] فشل إرسال الموقع المباشر لقاعدة البيانات:', error); });
-                }
-            },
-            (err) => { console.error('[NAV-GPS] خطأ في مراقبة الموقع لصفحة الملاحة:', err.code, err.message); },
-            { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
-        );
-        // [FIX-NAV-LIVE-GPS] احتياط إضافي: استطلاع كل 3 ثوانٍ في حال فشل watchPosition بصمت على بعض
-        // الأجهزة/المتصفحات (مشكلة معروفة في بعض WebViews القديمة)
+        // [FIX-NAV-READ-FROM-TRACKING] بدل تشغيل مراقبة GPS مستقلة جديدة (قد تتعارض أو تتأثر بقيود
+        // المتصفح/الجهاز)، أصبحت صفحة الملاحة تقرأ موقع المندوب مباشرة من جدول sh_admin_tracking —
+        // وهي **نفس الطريقة بالضبط** التي تعمل بها صفحة تتبع العميل بنجاح مؤكَّد وتُحدَّث بشكل حي،
+        // فهذا يضمن نفس الموثوقية تماماً بدون أي اعتماد إضافي على GPS مستقل قد يكون السبب الحقيقي للعطل
         if (_navPollInterval) clearInterval(_navPollInterval);
-        _navPollInterval = setInterval(() => {
-            if (window._lastKnownLat && window._lastKnownLng) _navHandlePosition(window._lastKnownLat, window._lastKnownLng);
-        }, 3000);
+        const _readFromTracking = async () => {
+            if (!currentUserData || !currentUserData.id) return;
+            try {
+                const { data: pos, error } = await supabaseClient.from('sh_admin_tracking').select('lat,lng,heading').eq('id', currentUserData.id).maybeSingle();
+                if (error) { console.error('[NAV-GPS] خطأ أثناء قراءة الموقع من sh_admin_tracking:', error); return; }
+                if (pos && pos.lat && pos.lng) {
+                    _navHandlePosition(parseFloat(pos.lat), parseFloat(pos.lng));
+                }
+            } catch(e) { console.error('[NAV-GPS] استثناء أثناء قراءة الموقع:', e); }
+        };
+        _readFromTracking(); // قراءة فورية أولى بدون انتظار أول دورة
+        _navPollInterval = setInterval(_readFromTracking, 2000);
     }
     function _navStopPositionFeed() {
         if (_navOwnWatchId !== null) { try { navigator.geolocation.clearWatch(_navOwnWatchId); } catch(e) {} _navOwnWatchId = null; }
@@ -6427,11 +7070,12 @@
     // ===== FIX-POLL-DRV: Polling احتياطي سريع للطلب النشط =====
     function _startActiveOrderPoll(orderId) {
         if (window._activePollInterval) clearInterval(window._activePollInterval);
+        let _lastKnownTotal = null;
         window._activePollInterval = setInterval(async () => {
             if (!currentOrderID) { clearInterval(window._activePollInterval); return; }
             try {
                 const { data: _pOrd } = await supabaseClient
-                    .from('sh_public_orders').select('status, restaurant_note, order_details')
+                    .from('sh_public_orders').select('status, restaurant_note, order_details, total, delivery_price')
                     .eq('id', orderId).maybeSingle();
                 if (!_pOrd) return;
                 if (_pOrd.status === 'cancelled') {
@@ -6442,7 +7086,21 @@
                 } else if (_pOrd.status === 'completed') {
                     clearInterval(window._activePollInterval);
                 }
-            } catch(e) {}
+                // [FIX-INVOICE-NOT-REACHING-DRIVER] السبب الحقيقي لعدم وصول تعديل الفاتورة لتطبيق
+                // المندوب: هذا الاستطلاع كان يتحقق فقط من الحالة والملاحظات، ولا يعيد فحص طلب تعديل
+                // الفاتورة (موافقة/رفض العميل) ولا يعيد رسم قيمة الفاتورة المعروضة إطلاقاً — فتبقى
+                // شاشة المندوب تعرض القيمة القديمة حتى لو غادر وعاد للطلب يدوياً بعد لحظات.
+                if (typeof _refreshInvoiceRevisionButtonState === 'function') {
+                    _refreshInvoiceRevisionButtonState();
+                }
+                const _newTotal = parseFloat(_pOrd.total) || 0;
+                if (_lastKnownTotal !== null && _newTotal !== _lastKnownTotal) {
+                    console.log('[FIX-INVOICE-NOT-REACHING-DRIVER] تغيّر إجمالي الطلب من', _lastKnownTotal, 'إلى', _newTotal, '— إعادة رسم شاشة الطلب فوراً');
+                    siteNotify('💰 تم تحديث فاتورة الطلب: ' + _newTotal.toLocaleString() + ' ل.س');
+                    if (typeof reconnectActiveOrder === 'function') reconnectActiveOrder(orderId);
+                }
+                _lastKnownTotal = _newTotal;
+            } catch(e) { console.error('[FIX-INVOICE-NOT-REACHING-DRIVER] خطأ أثناء استطلاع الطلب النشط:', e); }
         }, 5000);
     }
     // ===== نهاية Polling الطلب النشط =====
@@ -7556,74 +8214,107 @@
         currentContractType = type;
         contractSealApplied = false;
         const driverName = currentUserData ? (currentUserData.name || '..........................') : '..........................';
-        const driverId = currentUserData ? (currentUserData.id ? currentUserData.id.substring(0,8).toUpperCase() : '........................') : '........................';
+        const driverPhone = currentUserData ? (currentUserData.phone || '') : '';
+        const driverVehicle = currentUserData ? (currentUserData.car_type || '') : '';
         const today = new Date().toLocaleDateString('ar-SY');
+        // [FIX-CONTRACT-AUTOFILL] تعبئة تلقائية لكل ما يملكه النظام فعلياً عن هذا المندوب — النسبة
+        // ونوع العمل (حر/مقيّد) تأتيان مباشرة من بيانات حسابه المعتمدة من الإدارة، فلا يحتاج أي تعديل
+        // يدوي لهما إطلاقاً، ويتحدّث تلقائياً إن غيّرت الإدارة أياً منهما لاحقاً.
+        const driverProfitPercent = currentUserData && currentUserData.company_profit_percent != null ? currentUserData.company_profit_percent : '';
+        const isRestricted = currentUserData && currentUserData.driver_type === 'shift';
+        const isFreelance = !isRestricted;
+        // [FIX-CONTRACT-EXTRA-FIELDS] استخدام البيانات المحفوظة من صفحة الحساب إن وُجدت
+        const savedIdNumber   = currentUserData && currentUserData.id_number      ? escHtml(currentUserData.id_number)      : '';
+        const savedBirthdate  = currentUserData && currentUserData.birth_date_txt ? escHtml(currentUserData.birth_date_txt) : '';
+        const savedAddress    = currentUserData && currentUserData.address        ? escHtml(currentUserData.address)        : '';
+        const savedVehModel   = currentUserData && currentUserData.vehicle_model  ? escHtml(currentUserData.vehicle_model)  : '';
+        const savedVehColor   = currentUserData && currentUserData.vehicle_color  ? escHtml(currentUserData.vehicle_color)  : '';
+        const savedVehPlate   = currentUserData && currentUserData.vehicle_plate  ? escHtml(currentUserData.vehicle_plate)  : '';
+        const savedLicenseNum = currentUserData && currentUserData.license_number ? escHtml(currentUserData.license_number) : '';
 
         let contractHTML = '';
 
         if (type === 'create') {
             contractHTML = `
                 <div id="contract-print-content">
-                    <div class="contract-title">🦅 عقد عمل / تعاون مندوب توصيل</div>
-                    <div style="margin-bottom:10px;">
-                        <b>الطرف الأول:</b><br>
-                        شركة/مؤسسة: <b>شاهين إكسبريس</b><br>
-                        ويشار إليها لاحقاً بـ "الشركة".
-                    </div>
-                    <div style="margin-bottom:10px;">
-                        <b>الطرف الثاني:</b><br>
-                        الاسم: <input class="contract-input" value="${driverName}" id="c-name"><br>
-                        رقم الهوية / الإقامة: <input class="contract-input" id="c-id" placeholder="........................"><br>
-                        رقم الجوال: <input class="contract-input" id="c-phone" placeholder="........................"><br>
-                        ويشار إليه لاحقاً بـ "المندوب".
-                    </div>
+                    <div class="contract-title">🦅 عقد تعاون وتقديم خدمات توصيل</div>
+                    <div style="text-align:center; font-size:9px; color:#aaa; margin-bottom:8px;">المُبرم بين شركة شاهين إكسبريس والمندوب</div>
+                    <div style="font-size:9.5px; text-align:center; margin-bottom:10px;">الحمد لله رب العالمين، والصلاة والسلام على سيدنا محمد، أما بعد:<br>تم بعون الله إبرام هذا العقد بتاريخ: <b>${today}</b></div>
+
                     <div style="font-size:10px; line-height:1.9; margin-bottom:10px;">
-                        <b>البند الأول: طبيعة العمل</b><br>
-                        يعمل الطرف الثاني كمندوب توصيل عبر منصة وأنظمة الشركة الإلكترونية، ويلتزم بتنفيذ طلبات التوصيل المرسلة إليه وفق الأنظمة والتعليمات المعتمدة داخل التطبيق.<br><br>
-                        <b>البند الثاني: مهام المندوب</b><br>
-                        1- استلام الطلبات وتنفيذها بشكل صحيح وآمن.<br>
-                        2- المحافظة على خصوصية بيانات العملاء والمتاجر وعدم مشاركتها مع أي جهة.<br>
-                        3- التعامل باحترام مع العملاء والمتاجر والإدارة.<br>
-                        4- الالتزام بحالة الطلب داخل التطبيق وعدم التلاعب أو تغيير البيانات.<br>
-                        5- عدم استلام أي مبالغ خارج النظام إلا بموافقة الشركة.<br>
-                        6- الالتزام بالتعليمات المرورية وأنظمة الدولة أثناء التوصيل.<br><br>
-                        <b>البند الثالث: المسؤولية</b><br>
-                        1- المندوب مسؤول بشكل كامل عن المخالفات المرورية أو الحوادث الناتجة عن قيادته.<br>
-                        2- الشركة لا تتحمل أي استخدام شخصي للمركبة من قبل المندوب.<br>
-                        3- المندوب يتحمل مسؤولية أي طلب يتم استلامه وإثبات تسليمه بشكل صحيح.<br>
-                        4- يمنع استخدام بيانات العملاء أو أرقامهم خارج غرض التوصيل.<br><br>
-                        <b>البند الرابع: نظام التطبيق</b><br>
-                        1- جميع الطلبات يتم تنفيذها من خلال التطبيق فقط.<br>
-                        2- يحق للشركة إيقاف أو تعليق حساب المندوب عند مخالفة الأنظمة.<br>
-                        3- يمنع التحايل على النظام أو إنشاء طلبات وهمية أو التلاعب بحالات الطلبات.<br>
-                        4- أي محاولة اختراق أو عبث بالنظام تعرض المندوب للمساءلة القانونية.<br><br>
-                        <b>البند الخامس: المستحقات المالية</b><br>
-                        1- يحصل المندوب على مستحقاته حسب نظام العمولة أو الاتفاق المعتمد مع الشركة.<br>
-                        2- يحق للشركة تأجيل أو إيقاف أي دفعة عند وجود بلاغ أو مشكلة مالية حتى يتم التحقق منها.<br>
-                        3- يتم احتساب الأرباح والعمولات من خلال سجلات النظام الإلكترونية المعتمدة.<br><br>
-                        <b>البند السادس: السرية وحماية البيانات</b><br>
-                        يلتزم المندوب بالمحافظة على سرية جميع المعلومات الخاصة بالشركة والعملاء والمتاجر.<br><br>
-                        <b>البند السابع: إنهاء الاتفاق</b><br>
-                        يحق للشركة إنهاء أو تعليق الاتفاق مباشرة في حالات: إساءة استخدام النظام، تكرار الشكاوى، التلاعب بالطلبات أو الأموال، الإضرار بسمعة الشركة، مخالفة الأنظمة أو القوانين.<br><br>
-                        <b>البند الثامن: الإقرار</b><br>
-                        يقر الطرف الثاني بأنه قرأ جميع البنود وفهمها ووافق عليها بالكامل.
+                        <b>الطرف الأول:</b><br>
+                        شركة شاهين إكسبريس (Shaheen Express)، وهي شركة تعمل في خدمات التوصيل بين المطاعم، والصيدليات، والمتاجر، وغيرها، ويُشار إليها في هذا العقد بـ"الشركة".
+                    </div>
+
+                    <div style="margin-bottom:10px;">
+                        <b style="font-size:10px;">الطرف الثاني (المندوب):</b>
+                        <table style="width:100%; border-collapse:collapse; font-size:9.5px; margin-top:6px;">
+                            <tr><td style="border:1px solid #444; padding:5px; background:rgba(212,175,55,0.08); width:42%;">الاسم الكامل</td><td style="border:1px solid #444; padding:5px;"><input class="contract-input" style="width:95%;" value="${driverName}" id="c-name"></td></tr>
+                            <tr><td style="border:1px solid #444; padding:5px; background:rgba(212,175,55,0.08);">رقم الهوية / الإقامة</td><td style="border:1px solid #444; padding:5px;"><input class="contract-input" style="width:95%;" id="c-id" value="${savedIdNumber}" placeholder="........................"></td></tr>
+                            <tr><td style="border:1px solid #444; padding:5px; background:rgba(212,175,55,0.08);">تاريخ الميلاد</td><td style="border:1px solid #444; padding:5px;"><input class="contract-input" style="width:95%;" id="c-birthdate" value="${savedBirthdate}" placeholder="....  /  ....  /  ...."></td></tr>
+                            <tr><td style="border:1px solid #444; padding:5px; background:rgba(212,175,55,0.08);">العمر</td><td style="border:1px solid #444; padding:5px;"><input class="contract-input" style="width:95%;" id="c-age" value="${currentUserData && currentUserData.age ? currentUserData.age : ''}"></td></tr>
+                            <tr><td style="border:1px solid #444; padding:5px; background:rgba(212,175,55,0.08);">رقم الجوال</td><td style="border:1px solid #444; padding:5px;"><input class="contract-input" style="width:95%;" id="c-phone" value="${driverPhone}"></td></tr>
+                            <tr><td style="border:1px solid #444; padding:5px; background:rgba(212,175,55,0.08);">العنوان</td><td style="border:1px solid #444; padding:5px;"><input class="contract-input" style="width:95%;" id="c-address" value="${savedAddress}" placeholder="........................"></td></tr>
+                            <tr><td style="border:1px solid #444; padding:5px; background:rgba(212,175,55,0.08);">نوع المركبة</td><td style="border:1px solid #444; padding:5px;"><input class="contract-input" style="width:95%;" id="c-vehicle-type" value="${escHtml(driverVehicle)}"></td></tr>
+                            <tr><td style="border:1px solid #444; padding:5px; background:rgba(212,175,55,0.08);">موديل المركبة</td><td style="border:1px solid #444; padding:5px;"><input class="contract-input" style="width:95%;" id="c-vehicle-model" value="${savedVehModel}" placeholder="........................"></td></tr>
+                            <tr><td style="border:1px solid #444; padding:5px; background:rgba(212,175,55,0.08);">لون المركبة</td><td style="border:1px solid #444; padding:5px;"><input class="contract-input" style="width:95%;" id="c-vehicle-color" value="${savedVehColor}" placeholder="........................"></td></tr>
+                            <tr><td style="border:1px solid #444; padding:5px; background:rgba(212,175,55,0.08);">رقم لوحة المركبة</td><td style="border:1px solid #444; padding:5px;"><input class="contract-input" style="width:95%;" id="c-vehicle-plate" value="${savedVehPlate}" placeholder="........................"></td></tr>
+                            <tr><td style="border:1px solid #444; padding:5px; background:rgba(212,175,55,0.08);">رقم رخصة القيادة</td><td style="border:1px solid #444; padding:5px;"><input class="contract-input" style="width:95%;" id="c-license-num" value="${savedLicenseNum}" placeholder="........................"></td></tr>
+                            <tr><td style="border:1px solid #444; padding:5px; background:rgba(212,175,55,0.15); font-weight:bold;">نسبة المندوب من أجرة التوصيل</td><td style="border:1px solid #444; padding:5px; font-weight:bold; color:var(--gold);">${driverProfitPercent !== '' ? driverProfitPercent + '%' : '<input class="contract-input" style="width:95%;" id="c-percent" placeholder="___%">'}</td></tr>
+                            <tr><td style="border:1px solid #444; padding:5px; background:rgba(212,175,55,0.08);">تاريخ بداية العقد</td><td style="border:1px solid #444; padding:5px;">${today}</td></tr>
+                        </table>
+                    </div>
+
+                    <div style="font-size:9.5px; line-height:1.85; margin-bottom:8px;">
+                        <b>المادة الأولى: طبيعة العلاقة</b><br>
+                        يُقر الطرف الثاني بأنه يعمل مع شركة شاهين إكسبريس كمندوب توصيل مستقل وفق نظام العمولة أو النسبة المتفق عليها، ولا يُعتبر هذا العقد عقد توظيف براتب شهري، ولا يترتب عليه أي التزام من الشركة بتسجيل المندوب في التأمينات الاجتماعية أو توفير راتب ثابت أو بدلات أو إجازات مدفوعة أو أي مزايا وظيفية، ما لم يتم الاتفاق على ذلك كتابةً بعقد مستقل.<br><br>
+                        <b>المادة الثانية: مدة العقد</b><br>
+                        يبدأ العقد من تاريخ توقيعه، ويستمر حتى يتم إنهاؤه من أحد الطرفين وفق أحكام هذا العقد.<br><br>
+                        <b>المادة الثالثة: سرية المعلومات</b><br>
+                        يتعهد المندوب بالحفاظ على سرية جميع المعلومات المتعلقة بالشركة والعملاء والمطاعم والصيدليات والمتاجر. ويُمنع منعاً باتاً: إفشاء بيانات العملاء، تصوير الطلبات أو البيانات دون إذن، استخدام أرقام العملاء لأي غرض شخصي، مشاركة بيانات الشركة أو التطبيق مع أي جهة، استغلال معلومات العمل لتحقيق أي منفعة شخصية. ويستمر هذا الالتزام حتى بعد انتهاء العقد.<br><br>
+                        <b>المادة الرابعة: مسؤوليات المندوب</b><br>
+                        يلتزم المندوب بما يلي: 1) استلام الطلب الصحيح من الجهة المُرسلة. 2) التأكد من مطابقة الطلب لما هو ظاهر في النظام. 3) التأكد من سلامة التغليف وعدم وجود فتح أو عبث. 4) التأكد من وجود ستيكر السلامة الخاص بشركة شاهين إكسبريس عند اعتماده. 5) الحفاظ على الطلب أثناء النقل. 6) عدم فتح الطلب أو العبث بمحتوياته. 7) تسليم الطلب للعميل الصحيح. 8) الالتزام بالأخلاق والاحترام أثناء العمل. 9) المحافظة على سمعة الشركة. 10) الالتزام بجميع التعليمات الصادرة من الإدارة.<br><br>
+                        <b>المادة الخامسة: مسؤولية الطلب</b><br>
+                        تبدأ مسؤولية المندوب عن الطلب منذ لحظة استلامه وحتى تسليمه للعميل. ويتحمل المندوب المسؤولية في حال: فقدان الطلب، تلف الطلب نتيجة الإهمال، تسليم الطلب لشخص غير صحيح، العبث بمحتويات الطلب، التأخير الناتج عن الإهمال دون عذر مقبول.<br><br>
+                        <b>المادة السادسة: المخالفات والحوادث</b><br>
+                        يُقر المندوب بأنه يستخدم مركبته على مسؤوليته الشخصية. ولا تتحمل شركة شاهين إكسبريس أي مسؤولية عن: المخالفات المرورية، الحوادث، إصابات العمل الناتجة عن قيادة المركبة، صيانة المركبة، الوقود، التأمين، الأعطال الميكانيكية، أو أي مطالبات مالية أو قانونية تنتج عن استخدام المركبة. وتقتصر علاقة الشركة على إدارة منصة التوصيل وتنظيم الطلبات.<br><br>
+                        <b>المادة السابعة: العمولة</b><br>
+                        يُحدَّد نوع عمل المندوب كالتالي: ${isFreelance ? '<b style="color:var(--gold);">☑ عمل حر</b> (بدون التزام بمواعيد محددة)، ☐ عمل مقيّد' : '☐ عمل حر، <b style="color:var(--gold);">☑ عمل مقيّد</b> (التزام بمواعيد وشِفتات الشركة)'}.<br>
+                        يستحق المندوب نسبة قدرها <b style="color:var(--gold);">${driverProfitPercent !== '' ? driverProfitPercent + '%' : '______%'}</b> من أجرة التوصيل أو حسب السياسة المالية المعتمدة لدى الشركة. ويتم احتساب المستحقات وفق آلية المحاسبة المعتمدة.<br><br>
+                        <b>المادة الثامنة: العهدة</b><br>
+                        تقوم الشركة بتسليم المندوب المعدات التالية: رقم البوكس: <input class="contract-input" id="c-box-num" placeholder="....."> — رقم السترة: <input class="contract-input" id="c-jacket-num" placeholder="....."> — أي عهدة أخرى: <input class="contract-input" id="c-other-custody" placeholder="....."><br>
+                        يُقر المندوب باستلامها بحالة سليمة، ويلتزم بالمحافظة عليها وعدم بيعها أو إعارتها أو استخدامها خارج العمل. وعند انتهاء العقد يلتزم بإعادتها كما استلمها، مع مراعاة الاستهلاك الطبيعي. وفي حال فقدانها أو تلفها نتيجة الإهمال أو سوء الاستخدام، يلتزم المندوب بدفع التعويض الذي تحدده الشركة، ويحق للشركة خصم قيمة التعويض من مستحقاته إن وُجدت.<br><br>
+                        <b>المادة التاسعة: استخدام الحساب والمحفظة الرقمية</b><br>
+                        يلتزم المندوب باستخدام حسابه الشخصي داخل نظام شاهين إكسبريس فقط. ويُمنع منعاً باتاً: التلاعب بالحساب، التلاعب بالمحفظة الرقمية، إنشاء طلبات وهمية، استغلال الثغرات البرمجية، مشاركة الحساب مع أي شخص، استخدام حسابات متعددة دون موافقة الشركة، التلاعب بالعمولات أو المكافآت أو النقاط، تقديم بيانات غير صحيحة. وفي حال ثبوت أي مخالفة، يحق للشركة: إيقاف الحساب، إنهاء العقد مباشرة، حجز المستحقات لحين انتهاء التحقيق إذا لزم الأمر، اتخاذ الإجراءات القانونية والمطالبة بالتعويض عند وجود ضرر.<br><br>
+                        <b>المادة العاشرة: الالتزام بالأنظمة</b><br>
+                        يلتزم المندوب بجميع التعليمات واللوائح والسياسات التي تعتمدها الشركة حالياً أو مستقبلاً، ويُعتبر استمرار استخدامه للنظام موافقةً على التحديثات التشغيلية التي لا تتعارض مع هذا العقد.<br><br>
+                        <b>المادة الحادية عشرة: إنهاء العقد</b><br>
+                        يحق للشركة إنهاء العقد أو إيقاف حساب المندوب فوراً في الحالات التالية: إساءة التعامل مع العملاء، إساءة التعامل مع المطاعم أو الصيدليات، سرقة أو إتلاف الطلبات، تسريب بيانات العملاء، التلاعب بالنظام، استخدام الحساب بشكل مخالف، الإضرار بسمعة الشركة، مخالفة أحكام هذا العقد. كما يحق للمندوب إنهاء التعاون بإشعار الشركة وإعادة جميع العُهد المسلَّمة له قبل إغلاق حسابه.<br><br>
+                        <b>المادة الثانية عشرة: أحكام عامة</b><br>
+                        1) يُقر المندوب بأنه قرأ جميع بنود هذا العقد وفهمها ووافق عليها دون أي إكراه. 2) أي تعديل على هذا العقد لا يكون نافذاً إلا إذا كان مكتوباً ومعتمداً من الشركة. 3) يُعتبر توقيع المندوب موافقة كاملة على جميع سياسات وأنظمة شاهين إكسبريس. 4) في حال نشوء أي نزاع، تُطبَّق الأنظمة والقوانين النافذة في الدولة التي تعمل فيها الشركة، وتكون الجهة القضائية المختصة هي المرجع للفصل في النزاع. 5) إذا تبيّن بطلان أي بند من بنود هذا العقد، فلا يؤثر ذلك على صحة باقي البنود.<br><br>
+                        <b>المادة الثالثة عشرة: نظام العمل (حر / مقيّد)</b><br>
+                        يُحدَّد نوع عمل المندوب وفق أحد النظامين التاليين، بحسب ما يتم الاتفاق عليه مع الشركة عند التعاقد: 1) العمل الحر: يعمل المندوب وفق الأوقات التي يختارها بنفسه، فيقوم بتسجيل الدخول والخروج من التطبيق متى شاء، ولا يستقبل الطلبات إلا أثناء تواجده الفعلي (أونلاين)، دون أي التزام بعدد ساعات أو جدول عمل محدد من الشركة. 2) العمل المقيّد: يلتزم المندوب في هذا النظام بالتواجد وتسجيل الدخول على التطبيق خلال المواعيد والشِفتات التي تحددها الشركة مسبقاً، ويُعّد الغياب أو التأخر عن الشِفت المحدد دون عذر مقبول وموافقة مسبقة من الشركة مخالفةً لأحكام هذا العقد. وتحتفظ الشركة بحقها في تعديل أو تغيير هذه المواعيد والجداول مستقبلاً بما يتناسب مع احتياجات العمل، ويُعّد استمرار المندوب في العمل بعد أي تعديل من هذا القبيل موافقة ضمنية منه على التعديل والتزاماً بتطبيقه.<br><br>
+                        <b>المادة الرابعة عشرة: العقد الإلكتروني والموافقة الضمنية</b><br>
+                        يُقر الطرفان بأن هذا العقد متاح بصيغته الإلكترونية على منصة وتطبيق شاهين إكسبريس، وله كامل الحجية والقوة القانونية شأنه شأن النسخة الورقية الموقّعة. ويُعتبر استلام المندوب لأي طلب توصيل عبر التطبيق أو المنصة بمثابة موافقة كاملة وضمنية منه على جميع بنود وأحكام هذا العقد، والتزاماً تاماً بتنفيذها، دون الحاجة لتوقيع نسخة ورقية مستقلة عن كل عملية.<br><br>
+                        <b>إقرار المندوب:</b><br>
+                        أُقّر أنا الموقّع أدناه بأنني قرأت هذا العقد كاملاً، وفهمت جميع مواده، وأوافق عليها بمحض إرادتي، وألتزم بتنفيذ جميع ما ورد فيه، وأتحّمل المسؤولية القانونية عن أي مخالفة أو إخلال بأحكامه.
                     </div>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:15px; padding-top:10px; border-top:1px dashed #d4af37; font-size:10px;">
                         <div style="text-align:center;">
-                            <div>الطرف الأول</div>
-                            <div>الاسم: يحيى عزام مصطفى قاضي يحا</div>
+                            <div>الطرف الأول — شركة شاهين إكسبريس</div>
+                            <div>الاسم: يحيى عزام قاضي ريحا — مدير الشركة</div>
                             <div style="height:30px; border-bottom:1px solid #000; margin:5px 0;"></div>
                             <div>التوقيع</div>
                         </div>
                         <div style="text-align:center;">
-                            <div>الطرف الثاني</div>
+                            <div>الطرف الثاني — المندوب</div>
                             <div>الاسم: ${driverName}</div>
                             <div style="height:30px; border-bottom:1px solid #000; margin:5px 0;"></div>
                             <div>التوقيع</div>
                         </div>
                     </div>
                     <div style="text-align:center; margin-top:10px; font-size:10px;">التاريخ: ${today}</div>
-                    <div style="text-align:center; margin-top:6px; font-size:8px; color:#888;">شركة شاهين إكسبريس — جميع الحقوق محفوظة 2026©</div>
+                    <div style="text-align:center; margin-top:6px; font-size:8px; color:#888;">Shaheen Express — عقد تعاون وتقديم خدمات توصيل</div>
                 </div>`;
         } else {
             // فسخ عقد
@@ -8079,6 +8770,44 @@
         if (currentUserData) _pwkWakeUpDriver();
     });
 
+    // [FIX-PROMO-MESSAGES] فحص دوري عن رسائل إعلامية جديدة من الإدارة — كل رسالة تظهر مرة واحدة فقط
+    async function _checkPromoBroadcastDriver() {
+        try {
+            const { data } = await supabaseClient.from('promo_broadcast_log').select('*').eq('target', 'driver').order('sent_at', { ascending: false }).limit(1).maybeSingle();
+            if (!data) return;
+            const lastSeenId = localStorage.getItem('shaheen_driver_last_promo_id');
+            if (String(data.id) !== String(lastSeenId)) {
+                localStorage.setItem('shaheen_driver_last_promo_id', String(data.id));
+                siteNotify('🦅 ' + (data.heading ? data.heading + ': ' : '') + data.body);
+            }
+        } catch(e) { /* لا نزعج المندوب بخطأ صامت هنا */ }
+    }
+    setInterval(_checkPromoBroadcastDriver, 20000); // [FIX-PROMO-MESSAGES] كل 20 ثانية بدل دقيقتين
+    setTimeout(_checkPromoBroadcastDriver, 3000);
+
+    // [FIX-WEB-STUCK-NO-REFRESH] شبكة أمان إضافية مستقلة تماماً عن أحداث online/offline —
+    // هذه الأحداث تعكس فقط حالة واجهة الشبكة الفعلية، لكن قناة Realtime الخاصة بـ Supabase قد
+    // تنقطع بصمت تماماً (انتهاء مهلة من طرف الخادم مثلاً) بينما الشبكة نفسها متصلة تماماً من
+    // منظور المتصفح — وهذا بالضبط سيناريو "لا تصل الطلبات حتى تحديث الصفحة يدوياً" رغم بقاء
+    // التطبيق مفتوحاً وظاهراً طوال الوقت. هذا الفحص الدوري يعمل بغض النظر عن أي حدث شبكة إطلاقاً.
+    setInterval(() => {
+        if (currentUserData && !refreshInterval) {
+            console.warn('[FIX-WEB-STUCK-NO-REFRESH] اكتُشف توقّف مؤقّت التحديث — إعادة تشغيله فوراً');
+            startRefreshTimer();
+        }
+    }, 20000);
+
+    // [FIX-WEB-STUCK-NO-REFRESH] عند عودة ظهور التبويب (بعد التبديل لتبويب/تطبيق آخر ثم الرجوع)،
+    // نتحقق فوراً ونعيد ربط قنوات Realtime — بعض المتصفحات تُجمِّد مؤقّتات التبويبات المخفية دون أي
+    // حدث شبكة، فتُعطي انطباعاً بأن النظام "توقف" رغم أن التطبيق لم يُغلَق إطلاقاً
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && currentUserData) {
+            console.log('[FIX-WEB-STUCK-NO-REFRESH] التبويب عاد للظهور — التحقق من الاتصال وتحديث فوري');
+            _pwkWakeUpDriver();
+            refreshOrders();
+        }
+    });
+
     // ================================================================
     // [PWA-LIFECYCLE-DRIVER] نظام إعادة الاتصال الشامل للـ PWA/WebView/APK
     // يحل مشكلة: النظام لا يعمل إلا بعد Refresh أو إعادة فتح التطبيق
@@ -8120,42 +8849,8 @@
                 }
             }).subscribe();
 
-        // 2b. قناة الطلبات الجديدة والتحديثات
-        supabaseClient.channel('public_orders_realtime')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sh_public_orders' }, payload => {
-                if (payload.new.is_consultation === true) return;
-                if (payload.new.status === 'searching' || payload.new.status === 'pending') {
-                    siteNotify("🦅 صيد جديد! طلب من " + (payload.new.restaurant_name || payload.new.res || payload.new.res_name));
-                    refreshOrders();
-                }
-            })
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sh_public_orders' }, payload => {
-                if (payload.new.id === currentOrderID && (payload.new.status === 'cancelled' || payload.new.status === 'completed')) {
-                    try { _closeDriverPath(payload.new.id); } catch(_e) {}
-                    currentOrderID = null;
-                    localStorage.removeItem('active_order_id');
-                    nav('p-main');
-                }
-                if (payload.new.status === 'accepted' && payload.new.driver_id && payload.new.driver_id !== (currentUserData ? currentUserData.id : null)) {
-                    const _cr = document.getElementById('order-card-' + payload.new.id);
-                    if (_cr) { _cr.style.opacity = '0'; setTimeout(() => { if (_cr.parentNode) _cr.parentNode.removeChild(_cr); }, 300); }
-                }
-                refreshOrders();
-            })
-            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sh_public_orders' }, payload => {
-                if (payload.old && payload.old.id === currentOrderID) {
-                    currentOrderID = null;
-                    localStorage.removeItem('active_order_id');
-                    siteNotify("الطلب لم يعد متاحاً (تم الإلغاء)");
-                    nav('p-main');
-                }
-                refreshOrders();
-            })
-            .subscribe((st) => {
-                if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT' || st === 'CLOSED') {
-                    setTimeout(() => { if (currentUserData) refreshOrders(); }, 2000);
-                }
-            });
+        // 2b. قناة الطلبات الجديدة والتحديثات — [FIX-REALTIME-CONSOLIDATE] نفس التطبيق الوحيد المعتمَد
+        _setupOrdersRealtimeChannel();
 
         // 2c. قناة التمويل
         supabaseClient.channel('financing-status-realtime')
@@ -8307,7 +9002,59 @@
     try {
       return (await Notification.requestPermission()) === 'granted';
     } catch(_e) { return false; }
-  };
+  }
+</script>
+
+<!-- ===== [FIX-NATIVE-PUSH-BACKGROUND] إشعارات Firebase عبر Capacitor الأصلية (Native) ===== -->
+<!-- هذا هو الفرق الحاسم لعمل الإشعارات حتى مع إغلاق التطبيق بالكامل: الإشعار عبر Service Worker على
+     الويب يعتمد على بقاء صفحة/متصفح حيّاً، وهذا غير موثوق إطلاقاً عند إغلاق تطبيق أندرويد المُغلَّف
+     تماماً من الذاكرة. أما التسجيل هنا عبر Capacitor فيربط التطبيق مباشرة بخدمة FCM على مستوى نظام
+     التشغيل نفسه (تماماً كواتساب أو أي تطبيق أصلي)، فتصل الإشعارات وتُصدر صوتاً حتى لو كان التطبيق
+     مُغلَقاً تماماً من الذاكرة — لأن نظام أندرويد نفسه من يستقبلها، لا صفحة الويب. -->
+<script>
+  (function () {
+    // يعمل فقط داخل تطبيق أندرويد المبني عبر Capacitor — لا يؤثر إطلاقاً على نسخة الويب/PWA
+    if (!window.Capacitor || !window.Capacitor.isNativePlatform || !window.Capacitor.isNativePlatform()) return;
+    const PN = window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications;
+    if (!PN) { console.warn('[FIX-NATIVE-PUSH] إضافة PushNotifications غير مُحمَّلة'); return; }
+
+    async function _initNativePush() {
+        try {
+            let perm = await PN.checkPermissions();
+            if (perm.receive !== 'granted') perm = await PN.requestPermissions();
+            if (perm.receive !== 'granted') { console.warn('[FIX-NATIVE-PUSH] لم يُمنح إذن الإشعارات'); return; }
+            await PN.register();
+        } catch(e) { console.error('[FIX-NATIVE-PUSH] فشل تسجيل الإشعارات الأصلية:', e); }
+    }
+
+    // التوكن الأصلي الحقيقي وصل — نحفظه بنفس الآلية الموجودة أصلاً (تعمل حتى بدون تغيير قاعدة البيانات)
+    PN.addListener('registration', (token) => {
+        if (token && token.value && typeof _handleNativeToken === 'function') {
+            console.log('[FIX-NATIVE-PUSH] تسجيل ناجح، التوكن الأصلي:', token.value.substring(0, 12) + '...');
+            _handleNativeToken(token.value);
+        }
+    });
+
+    PN.addListener('registrationError', (err) => {
+        console.error('[FIX-NATIVE-PUSH] خطأ تسجيل الإشعارات الأصلية:', err);
+    });
+
+    // وصل إشعار والتطبيق مفتوح أو في الخلفية — نحدّث قائمة الطلبات فوراً
+    PN.addListener('pushNotificationReceived', (notification) => {
+        if (typeof refreshOrders === 'function') refreshOrders();
+        if (typeof siteNotify === 'function') siteNotify('🦅 ' + (notification.title || 'طلب جديد! يا صقر هناك طلبات في السماء'));
+    });
+
+    // ضغط المندوب على الإشعار نفسه (من خارج التطبيق تماماً) — نفتح شاشة الطلبات مباشرة
+    PN.addListener('pushNotificationActionPerformed', (action) => {
+        if (typeof nav === 'function') nav('p-main');
+        if (typeof refreshOrders === 'function') refreshOrders();
+    });
+
+    // بدء التسجيل بمجرد جاهزية الصفحة
+    if (document.readyState === 'complete') _initNativePush();
+    else window.addEventListener('load', _initNativePush);
+  })();
 </script>
 <!-- ===== نهاية Firebase Cloud Messaging ===== -->
 
@@ -8332,6 +9079,50 @@ ALTER TABLE public.sh_driver_daily_closings DISABLE ROW LEVEL SECURITY;
      FIX-MULTI-DEVICE: شغّل هذا الـ SQL أيضاً لتفعيل نظام منع تعدد الأجهزة:
      ═══════════════════════════════════════════════════════════
 ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS active_device_id text DEFAULT NULL;
+     ═══════════════════════════════════════════════════════════
+     [FIX-LEDGER-MISSING] شغّل هذا الـ SQL — هذا هو السبب الجذري الحقيقي لرسالة الخطأ الطويلة التي
+     تظهر عند تسليم الطلب ("فشل تسجيل أرباح هذا الطلب محاسبياً"): جدول ledger (سجل التسوية التلقائية
+     لكل طلب) لم يكن مُنشَأً في القاعدة إطلاقاً رغم استخدامه في الكود لتسجيل كل عملية تسليم:
+     ═══════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.ledger (
+  id                       uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  driver_id                text,
+  order_id                 text,
+  total_cash               numeric DEFAULT 0,
+  actual_paid_by_client    numeric DEFAULT 0,
+  company_share            numeric DEFAULT 0,
+  driver_share             numeric DEFAULT 0,
+  discount                 numeric DEFAULT 0,
+  deducted_from_driver     numeric DEFAULT 0,
+  net_company_profit       numeric DEFAULT 0,
+  company_running_balance  numeric DEFAULT 0,
+  cash_earnings            numeric DEFAULT 0,
+  wallet_compensation      numeric DEFAULT 0,
+  total_profit_driver      numeric DEFAULT 0,
+  consultation_fee         numeric DEFAULT 0,
+  consult_paid_by_points   boolean DEFAULT false,
+  created_at               timestamptz DEFAULT now()
+);
+ALTER TABLE public.ledger DISABLE ROW LEVEL SECURITY;
+     ═══════════════════════════════════════════════════════════
+     [FIX-INVOICE-REVISION-MISSING] شغّل هذا الـ SQL أيضاً — نفس المشكلة بالضبط لكن لطلبات تعديل
+     الفاتورة: جدول invoice_revision_requests لم يكن مُنشَأً إطلاقاً رغم استخدامه في تطبيق المندوب
+     والعميل معاً لإرسال/استقبال/الموافقة على طلبات تعديل الفاتورة — وهذا سبب "حدوث خطأ غامض" و"عدم
+     وصول التعديل لتطبيق المندوب" بالضبط: لم يكن هناك مكان لحفظ الطلب من الأساس.
+     ═══════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.invoice_revision_requests (
+  id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  order_id     text NOT NULL,
+  driver_id    text,
+  driver_name  text,
+  old_amount   numeric DEFAULT 0,
+  new_amount   numeric DEFAULT 0,
+  reason       text,
+  status       text DEFAULT 'pending',
+  created_at   timestamptz DEFAULT now(),
+  resolved_at  timestamptz
+);
+ALTER TABLE public.invoice_revision_requests DISABLE ROW LEVEL SECURITY;
      ═══════════════════════════════════════════════════════════ -->
 
 <!-- ═══════════════════════════════════════════════════════════════════
