@@ -949,7 +949,16 @@
             <h2 style="color:var(--gold); font-size: 18px;">إنشاء حساب شاهين 🦅</h2>
             <p style="font-size:11px; color:#aaa; margin-bottom:10px;">أدخل بياناتك كاملة لإنشاء حسابك</p>
             <input type="text" id="reg-uName" placeholder="الاسم الكامل">
-            <input type="tel" id="reg-uPhone" placeholder="رقم الجوال">
+            <!-- [FIX-COUNTRY-CODE-PHONE] مفتاح دولة برمز الدولة والعلم — يضبط المفتاح الدولي الحقيقي
+                 المرفق برقم الجوال، بدل تخمينه لاحقاً من صيغة الرقم المحلي -->
+            <div style="display:flex; gap:6px; direction:ltr;">
+                <select id="reg-country-code" style="width:100px; flex-shrink:0; background:rgba(0,0,0,0.3); color:#fff; border:1px solid var(--gold); border-radius:10px; padding:0 8px; font-size:13px; text-align:center;">
+                    <option value="963" selected>🇸🇾 +963</option>
+                    <option value="966">🇸🇦 +966</option>
+                    <option value="90">🇹🇷 +90</option>
+                </select>
+                <input type="tel" id="reg-uPhone" placeholder="رقم الجوال" style="flex:1; direction:rtl;">
+            </div>
             <input type="text" id="reg-uAddress" placeholder="العنوان (الحي / الشارع)">
             <input type="email" id="reg-uEmail" placeholder="البريد الإلكتروني" autocomplete="email">
             <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin:8px 0 14px; direction:ltr;">
@@ -2188,10 +2197,16 @@
     async function registerSendCode() {
         if (_authSendInProgress) return;
         const n = document.getElementById('reg-uName').value.trim();
-        const ph = document.getElementById('reg-uPhone').value.trim();
+        const _phRaw = document.getElementById('reg-uPhone').value.trim();
+        const _countryCode = document.getElementById('reg-country-code').value;
+        // [FIX-COUNTRY-CODE-PHONE] دمج مفتاح الدولة المختار مع الرقم المحلي — إزالة الصفر الأول إن
+        // وُجد (الصيغة القياسية عند إضافة مفتاح دولي)، فيصبح الرقم المخزَّن دولياً كاملاً وغير قابل
+        // للَّبس عند بناء روابط واتساب لاحقاً بغض النظر عن جنسية الرقم
+        const _phLocal = _phRaw.replace(/^0+/, '');
+        const ph = _phRaw ? (_countryCode + _phLocal) : '';
         const addr = document.getElementById('reg-uAddress').value.trim();
         const email = document.getElementById('reg-uEmail').value.trim().toLowerCase();
-        if (!n || !ph || !addr || !email) return showNotify("يرجى إكمال كافة الحقول", "error");
+        if (!n || !_phRaw || !addr || !email) return showNotify("يرجى إكمال كافة الحقول", "error");
         if (!_emailIsValid(email)) return showNotify("صيغة البريد الإلكتروني غير صحيحة", "error");
 
         try {
