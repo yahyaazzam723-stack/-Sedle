@@ -2221,7 +2221,14 @@
             // [FIX-AUTH-REDESIGN] فحص إن كان البريد مسجَّلاً بالفعل ومفعَّلاً
             const { data: existing } = await _supabase.from('customers').select('id,is_activated').eq('email', email).maybeSingle();
             if (existing && existing.is_activated) {
-                showNotify("هذا البريد مسجَّل بالفعل، يرجى تسجيل الدخول بدلاً من ذلك", "error");
+                showNotify("هذا البريد الإلكتروني مستخدم بالفعل، يرجى تسجيل الدخول.", "error");
+                return;
+            }
+
+            // [FIX-PHONE-UNIQUE] فحص إن كان رقم الجوال مستخدَماً بالفعل من قبل حساب آخر مفعَّل
+            const { data: existingPhone } = await _supabase.from('customers').select('id,email').eq('phone', ph).eq('is_activated', true).maybeSingle();
+            if (existingPhone && existingPhone.email !== email) {
+                showNotify("رقم الجوال مستخدم بالفعل.", "error");
                 return;
             }
 
