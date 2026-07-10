@@ -1674,6 +1674,25 @@
     }
     // ===== نهاية [SEC-FIX-XSS] =====
 
+    // ===== [SEC-FIX-XSS-ATTR] دالة تنقية مخصّصة للقيم التي تُدرَج داخل سمة onclick="..." =====
+    // escHtml وحدها غير كافية هنا: المتصفح يفكّ ترميز HTML entities أولاً ثم ينفّذ محتوى onclick كـ JS،
+    // فلو استخدمنا escHtml (التي تحوّل ' إلى &#x27;) فسيُعاد فكّها إلى ' حرفياً قبل التنفيذ فيكسر السلسلة
+    // النصية في JS (أو يفتح ثغرة). لذلك: نهرب أحرف JS الخاصة أولاً (backslash ثم quote)، ثم نُرمّز الأحرف
+    // التي قد تكسر سمة HTML نفسها (" و < و >) بترميز HTML عادي — وهذه الأخيرة تُفكّ بأمان قبل التنفيذ
+    // لأنها ليست أحرفاً خاصة داخل سلسلة JS محاطة بعلامة اقتباس مفردة.
+    function escJsAttr(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/\\/g, '\\\\')
+            .replace(/'/g, "\\'")
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+    // ===== نهاية [SEC-FIX-XSS-ATTR] =====
+
     // ===== [SEC-FIX-INPUT] دالة التحقق من صحة المبلغ المالي =====
     function sanitizeAmount(val) {
         const num = parseFloat(String(val).replace(/,/g, ''));
@@ -1971,10 +1990,16 @@
             if (res.length > 0) {
                 // [SEC-PATCH-7] escHtml applied to display_name and lat/lon to prevent XSS from Nominatim
                 box.innerHTML = res.map(item => {
-                    const safeName = escHtml(String(item.display_name || ''));
+                    // [SEC-FIX-NOMINATIM-XSS] display_name يأتي من Nominatim (بيانات خارجية غير موثوقة، من
+                    // مساهمي OpenStreetMap) — escHtml وحدها غير كافية داخل onclick لأن المتصفح يفكّ ترميز
+                    // HTML entities قبل تنفيذ الخاصية كـ JS، فيعيد أي علامة اقتباس مُرمَّزة إلى حرفها الأصلي
+                    // ويكسر السلسلة النصية. نستخدم escJsAttr للقيمة داخل onclick، وescHtml للنص المعروض فقط.
+                    const rawName = String(item.display_name || '');
+                    const displayName = escHtml(rawName);
+                    const jsAttrName = escJsAttr(rawName);
                     const safeLat = parseFloat(item.lat) || 0;
                     const safeLon = parseFloat(item.lon) || 0;
-                    return `<div class="suggestion-item" onclick="selectSuggestion('${safeName.replace(/'/g,"\\'")}', ${safeLat}, ${safeLon})">${safeName}</div>`;
+                    return `<div class="suggestion-item" onclick="selectSuggestion('${jsAttrName}', ${safeLat}, ${safeLon})">${displayName}</div>`;
                 }).join('');
                 box.style.display = 'block';
             }
@@ -2086,7 +2111,11 @@
         if (_sendBtn) { _sendBtn.disabled = true; _sendBtn.innerText = '⏳ جاري التحقق...'; }
         try {
             // [FIX-AUTH-REDESIGN] فحص وجود الحساب أولاً — قبل إرسال أي رمز، وممنوع إنشاء أي شيء هنا
-            const { data: dbCust } = await _supabase.from('customers').select('id,email,is_activated,account_status').eq('email', email).maybeSingle();
+            // [FIX-DUPLICATE-KEY-V3] استخدام select عادي بدل maybeSingle() — الأخير يفشل بخطأ إن
+            // وُجد أكثر من صف بنفس البريد (بيانات تجريبية قديمة متبقية)، مما كان يُظهَر خطأً كـ"غير
+            // مسجَّل" رغم أن الحساب موجود فعلاً. نُفضِّل الصف المفعَّل إن وُجد أكثر من صف بالخطأ.
+            const { data: _dbCustRows } = await _supabase.from('customers').select('id,email,is_activated,account_status').eq('email', email).order('is_activated', { ascending: false }).limit(1);
+            const dbCust = (_dbCustRows && _dbCustRows[0]) || null;
             if (!dbCust) {
                 showNotify("هذا البريد الإلكتروني غير مسجل، يرجى إنشاء حساب جديد.", "error");
                 return;
@@ -2168,6 +2197,8 @@
                 return;
             }
             document.getElementById('login-otp-status-msg').innerText = '✅ تم التحقق بنجاح';
+            // [FIX-AUTH-RACE-CONDITION] رفع العلم فوراً لمنع أي تعارض مع المستمع العام القديم
+            window._authFlowHandledSignIn = true;
             const { data: dbCust } = await _supabase.from('customers').select('*').eq('id', data.user.id).maybeSingle();
             if (!dbCust || !dbCust.is_activated) {
                 // حالة نادرة: تحقّق نجح لكن الحساب غير مفعَّل فعلياً بقاعدة البيانات — لا نسمح بالدخول
@@ -2184,7 +2215,6 @@
             }
             currentUser = { uid: dbCust.id, name: dbCust.name, email: dbCust.email, phone: dbCust.phone, address: dbCust.address, points: dbCust.points, balance: dbCust.balance };
             localStorage.setItem('shahen_user', JSON.stringify(currentUser));
-            window._authFlowHandledSignIn = true;
             _enterAppAfterLogin();
         } catch(_e) {
             document.getElementById('login-otp-status-msg').innerText = 'حدث خطأ غير متوقع، حاول مجدداً';
@@ -2219,7 +2249,9 @@
         if (_sendBtn) { _sendBtn.disabled = true; _sendBtn.innerText = '⏳ جاري الإنشاء...'; }
         try {
             // [FIX-AUTH-REDESIGN] فحص إن كان البريد مسجَّلاً بالفعل ومفعَّلاً
-            const { data: existing } = await _supabase.from('customers').select('id,is_activated').eq('email', email).maybeSingle();
+            // [FIX-DUPLICATE-KEY-V3] نفس التحصين ضد صفوف مكرَّرة محتملة من بيانات تجريبية سابقة
+            const { data: _existingRows } = await _supabase.from('customers').select('id,is_activated').eq('email', email).order('is_activated', { ascending: false }).limit(1);
+            const existing = (_existingRows && _existingRows[0]) || null;
             if (existing && existing.is_activated) {
                 showNotify("هذا البريد الإلكتروني مستخدم بالفعل، يرجى تسجيل الدخول.", "error");
                 return;
@@ -2299,16 +2331,26 @@
                 boxes[0].focus();
                 return;
             }
-            // [FIX-AUTH-ID-MISMATCH] الآن فقط نعرف المعرّف الحقيقي للمستخدم في نظام المصادقة —
-            // ننشئ صف العميل هنا مباشرة بهذا المعرّف الصحيح، ونجعله مفعَّلاً فوراً (التحقق نجح للتو).
-            // نحذف أولاً أي صف قديم بنفس البريد قد يكون تبقّى من محاولة سابقة بمعرّف غير مرتبط (مثل
-            // الصفوف المُنشأة قبل هذا الإصلاح)، لضمان وجود صف واحد فقط مرتبط بشكل صحيح دائماً
+            // [FIX-AUTH-RACE-CONDITION] يجب رفع هذا العلم فوراً هنا، قبل أي عملية إضافية — المستمع
+            // العام القديم (onAuthStateChange) يتفاعل مع حدث "SIGNED_IN" بشكل غير متزامن فور نجاح
+            // verifyOtp، وقد يسبق تنفيذه إنشاء صف العميل أدناه. سابقاً كان هذا العلم يُرفَع في نهاية
+            // الدالة، مما يترك نافذة زمنية حقيقية يستطيع خلالها ذلك المستمع أن يجد "لا يوجد صف عميل
+            // بعد" فيسجّل خروج المستخدم فوراً (auth.signOut())، مما قد يعطّل صلاحية عملية الإدراج
+            // التالية ويفسّر بدقة سبب عدم حفظ الحساب فعلياً رغم ظهور رسالة النجاح.
+            window._authFlowHandledSignIn = true;
+
+            // [FIX-AUTH-ID-MISMATCH] الآن فقط نعرف المعرّف الحقيقي للمستخدم في نظام المصادقة.
+            // [FIX-DUPLICATE-KEY-V3] تبسيط جذري نهائي: بدل أي منطق شرطي (تحقّق ثم قرّر، أو upsert)
+            // قد يفشل بطرق غير متوقعة، نحذف ببساطة أي صف موجود بنفس البريد (مهما كان عدده أو معرّفه)
+            // أولاً وبلا أي شرط، ثم ننشئ صفاً واحداً جديداً نظيفاً مباشرة. هذا يضمن رياضياً عدم بقاء
+            // أي صف مكرَّر بنفس البريد إطلاقاً، ويزيل احتمال تعارض المفتاح الأساسي نهائياً.
             const p = _registerPendingData || {};
-            try { await _supabase.from('customers').delete().eq('email', _registerCurrentEmail); } catch(_delErr) {}
-            const { error: _insErr } = await _supabase.from('customers').insert([{
-                id: data.user.id, email: _registerCurrentEmail, name: p.name, phone: p.phone, address: p.address,
-                points: 0, balance: 0, is_activated: true, auto_username: _generateAutoUsername('CUS')
-            }]);
+            const _custPayload = {
+                email: _registerCurrentEmail, name: p.name, phone: p.phone, address: p.address,
+                points: 0, balance: 0, is_activated: true
+            };
+            await _supabase.from('customers').delete().eq('email', _registerCurrentEmail);
+            const { error: _insErr } = await _supabase.from('customers').insert([{ id: data.user.id, ..._custPayload, auto_username: _generateAutoUsername('CUS') }]);
             if (_insErr) {
                 document.getElementById('register-otp-status-msg').innerText = '⚠️ تم التحقق لكن تعذّر إنشاء الحساب: ' + _insErr.message;
                 return;
@@ -2316,7 +2358,6 @@
             document.getElementById('register-otp-status-msg').innerText = '✅ تم تفعيل حسابك بنجاح';
             currentUser = { uid: data.user.id, name: p.name, email: p.email || data.user.email, phone: p.phone, address: p.address, points: 0, balance: 0 };
             localStorage.setItem('shahen_user', JSON.stringify(currentUser));
-            window._authFlowHandledSignIn = true;
             showNotify("🎉 تم إنشاء حسابك وتفعيله بنجاح");
             _enterAppAfterLogin();
         } catch(_e) {
@@ -2605,6 +2646,13 @@
 
         if(!currentUser) return;
 
+        // [SEC-FIX-LOADUSERDATA-TRYCATCH] المنطق التالي (استعادة بيانات المستخدم، الطلب النشط، والملاحة)
+        // كان بدون أي معالجة أخطاء على مستوى الدالة — أي استثناء من أي استدعاء Supabase (خصوصاً
+        // .single() الذي يرمي خطأ فعلياً عند عدم وجود صف مطابق أو وجود أكثر من صف) كان يوقف الدالة
+        // بالكامل بصمت، تاركاً المستخدم عالقاً على شاشة تسجيل الدخول/السبلاش بدون أي مخرج. الآن نضمن
+        // أن أي فشل جزئي هنا لا يمنع المستخدم من الدخول لواجهة التطبيق على الأقل.
+        try {
+
         const { data: dbUser } = await _supabase.from('customers').select('*').eq('id', currentUser.uid).single();
         if(dbUser) {
             currentUser.balance = dbUser.balance;
@@ -2817,6 +2865,19 @@
             } else {
                 nav('p-home');
             }
+        }
+        } catch(_luErr) {
+            // [SEC-FIX-LOADUSERDATA-TRYCATCH] فشل جزئي (غالباً انقطاع شبكة أو استثناء .single()) —
+            // نسجّل الخطأ للتشخيص، ونضمن أن المستخدم لا يبقى عالقاً على شاشة تسجيل الدخول
+            console.error('[loadUserData] فشل جزئي أثناء استعادة بيانات المستخدم/الطلب النشط:', _luErr);
+            try {
+                document.getElementById('p-login').style.display = 'none';
+                document.getElementById('tab-bar').style.display = 'flex';
+                document.getElementById('manual-refresh').style.display = 'flex';
+                document.getElementById('admin-notif-bell').style.display = 'flex';
+                if (typeof nav === 'function') nav('p-home');
+                showNotify('⚠️ حدث خلل بسيط أثناء تحميل بياناتك، جرّب تحديث الصفحة إن لاحظت أي نقص', 'error');
+            } catch(_fallbackErr) { /* لا شيء إضافي ممكن هنا بأمان */ }
         }
     }
 
@@ -4435,7 +4496,7 @@
                 // ✅ مطعم شريك + التواصل المباشر مفعّل من الإدارة
                 contactBtn.innerHTML = `
                     <div class="card" style="cursor:pointer;padding:14px;border:2px solid var(--gold);background:rgba(212,175,55,0.08);"
-                         onclick="startStoreConsult('${res.id}','${(res.name||'').replace(/'/g,"\\'")}','${res.specialty_type||'other'}')">
+                         onclick="startStoreConsult('${escJsAttr(res.id)}','${escJsAttr(res.name||'')}','${escJsAttr(res.specialty_type||'other')}')">
                         <div style="text-align:center;">
                             <i class="fas fa-comments" style="color:var(--gold);font-size:26px;margin-bottom:8px;display:block;"></i>
                             <b style="font-size:14px;color:var(--gold);">التواصل مع ${res.name||'المطعم'}</b>
@@ -4615,24 +4676,27 @@
                         ? `<img class="item-img" src="${escHtml(item.img)}" loading="lazy" onerror="this.onerror=null; this.src=''; this.className='item-img item-img-err'; this.alt='🍽️';">`  <!-- [SEC-FIX-C6] -->
                         : `<div class="item-img-placeholder">🍽️</div>`;
                     const extrasHtml = item.extras
-                        ? `<div class="item-extras"><i class="fas fa-plus-circle"></i> ${item.extras}</div>`
+                        ? `<div class="item-extras"><i class="fas fa-plus-circle"></i> ${escHtml(item.extras)}</div>`
                         : '';
                     // [FIX-MENU-QTY-STEPPER] معرّف فريد للصنف (اسم+سعر) لربط شريط الكمية بهذا العنصر
                     // تحديداً، حتى لو كان هناك أصناف بنفس الاسم من أقسام مختلفة
                     const _itemKey = (item.n + '|' + (item.p||0)).replace(/'/g, "\\'");
                     card.setAttribute('data-item-key', _itemKey);
+                    // [SEC-FIX-MENU-XSS] escHtml على اسم/وصف الصنف قبل إدراجه في innerHTML، وعلى القيمة
+                    // المستخدمة داخل سمات onclick — اسم الصنف يأتي من بيانات المطعم (بما فيها مطاعم شريكة
+                    // خارجية) وكان يُدرج سابقاً بدون تعقيم، ما يفتح ثغرة XSS مخزّنة وكسر سمة onclick نفسها
                     card.innerHTML = `
                         ${imgHtml}
                         <div class="item-info">
-                            <div class="item-name">${item.n}</div>
-                            ${item.desc ? '<div class="item-desc">' + item.desc + '</div>' : ''}
+                            <div class="item-name">${escHtml(item.n)}</div>
+                            ${item.desc ? '<div class="item-desc">' + escHtml(item.desc) + '</div>' : ''}
                             ${extrasHtml}
                             <div class="item-price">${fmtSYP(item.p||0,{inline:true,size:12})}</div>
                         </div>
                         <div class="menu-qty-stepper" id="qty-stepper-${_itemKey.replace(/[^a-zA-Z0-9]/g,'_')}" style="display:flex; align-items:center; gap:6px;">
-                            <button class="add-btn" style="display:none;" onclick="decrementMenuItemQty('${_currentMenuRes?.id}','${item.n.replace(/'/g, "\\'")}',${item.p || 0})">−</button>
+                            <button class="add-btn" style="display:none;" onclick="decrementMenuItemQty('${escJsAttr(_currentMenuRes?.id)}','${escJsAttr(item.n)}',${item.p || 0})">−</button>
                             <span class="menu-qty-count" style="display:none; min-width:16px; text-align:center; font-weight:bold; color:var(--gold); font-size:13px;">0</span>
-                            <button class="add-btn" onclick="addToCart('${_currentMenuRes?.id}','${item.n.replace(/'/g, "\\'")}',${item.p || 0})">+</button>
+                            <button class="add-btn" onclick="addToCart('${escJsAttr(_currentMenuRes?.id)}','${escJsAttr(item.n)}',${item.p || 0})">+</button>
                         </div>
                     `;
                     block.appendChild(card);
@@ -5319,7 +5383,9 @@
             </p>
         </div>`;
 
-        cont.innerHTML = '<div id="cart-address-picker-container"></div>' + _priceChangeWarning + bonusNotice + cart.map((i, idx) => `<div class="card" style="padding: 10px;"><div class="flex-reverse"><span><b style="font-size: 12px;">${i.n}${(i.qty && i.qty > 1) ? ' <span style=\"color:var(--gold);\">×' + i.qty + '</span>' : ''}</b></span><span style="font-size: 11px;">${(i.p * (i.qty || 1)).toLocaleString()} ل.س</span><i class="fas fa-trash" style="font-size: 12px;" onclick="removeFromCart(${idx})"></i></div></div>`).join('');
+        // [SEC-FIX-CART-XSS] تمرير اسم الصنف عبر escHtml — كان يُدرج مباشرة داخل innerHTML بدون تعقيم،
+        // وبما أن اسم الصنف يأتي من بيانات المطعم (وقد يكون مطعماً شريكاً خارجياً)، فهذا يسد ثغرة XSS محتملة
+        cont.innerHTML = '<div id="cart-address-picker-container"></div>' + _priceChangeWarning + bonusNotice + cart.map((i, idx) => `<div class="card" style="padding: 10px;"><div class="flex-reverse"><span><b style="font-size: 12px;">${escHtml(i.n)}${(i.qty && i.qty > 1) ? ' <span style=\"color:var(--gold);\">×' + i.qty + '</span>' : ''}</b></span><span style="font-size: 11px;">${(i.p * (i.qty || 1)).toLocaleString()} ل.س</span><i class="fas fa-trash" style="font-size: 12px;" onclick="removeFromCart(${idx})"></i></div></div>`).join('');
         // [FIX-CART-ADDRESS-PICKER] تحميل قائمة العناوين المحفوظة أعلى السلة — يعمل بشكل غير متزامن
         // حتى لا يؤخّر عرض بقية محتوى السلة نفسه
         if (typeof _loadCartAddressPicker === 'function') _loadCartAddressPicker();
@@ -7166,7 +7232,7 @@
             // [FIX-DETAILS-NOT-RATING] الضغط على كرت طلب مكتمل/ملغي من السجل يجب أن يفتح ملخص التفاصيل دائماً،
             // لا منطق checkOrderAction الذي قد يُظهر نافذة التقييم خطأً لطلب اكتمل بالفعل من قبل
             const onclickAttr = isSpecialtyChat
-                ? `openSpecialtyChat('${o.id}','${(o.restaurant_name||'').replace(/'/g,'').replace(/"/g,'')}','')`
+                ? `openSpecialtyChat('${escJsAttr(o.id)}','${escJsAttr(o.restaurant_name||'')}','')`
                 : isArchived
                     ? `showOrderDetailsSummary('${o.id}')`
                     : `checkOrderAction('${o.id}','${o.status}')`;
@@ -7221,7 +7287,7 @@
                     </div>` : ''}
 
                     ${isSpecialtyChat ? `
-                    <button onclick="event.stopPropagation(); openSpecialtyChat('${o.id}','${(o.restaurant_name||'').replace(/'/g,'').replace(/"/g,'')}','')"
+                    <button onclick="event.stopPropagation(); openSpecialtyChat('${escJsAttr(o.id)}','${escJsAttr(o.restaurant_name||'')}','')"
                         style="width:100%; margin-top:8px; background:linear-gradient(135deg,#6c3483,#8e44ad); color:#fff; border:none; border-radius:10px; padding:8px; font-size:11px; font-weight:bold; cursor:pointer;">
                         💜 متابعة الدردشة مع المتجر
                     </button>` : ''}
@@ -8681,8 +8747,11 @@
 
                 // [FIX-AUTH-REDESIGN] عدم وجود صف، أو وجوده بدون تفعيل، يعني عدم السماح بالدخول هنا
                 // إطلاقاً — هذا مسار استعادة جلسة سابقة فقط، لا مسار تسجيل جديد
+                // [FIX-AUTH-RACE-CONDITION] أُزيل استدعاء signOut() من هنا نهائياً — كان بإمكانه (في
+                // حال حدوث أي تعارض توقيتي نادر) تعطيل جلسة تسجيل جارية فعلياً أثناء إنشاء حساب جديد
+                // عبر الشاشات الصريحة، مما يفسّر حالات "الحساب لا يُحفَظ رغم ظهور رسالة النجاح". الآن
+                // هذا المسار الاحتياطي يكتفي بعدم الدخول تلقائياً دون أي أثر جانبي فعلي على الجلسة.
                 if (!dbCust || !dbCust.is_activated) {
-                    try { await _supabase.auth.signOut(); } catch(e) {}
                     return;
                 }
                 currentUser = { uid: dbCust.id, name: dbCust.name, email: dbCust.email, phone: dbCust.phone, address: dbCust.address, points: dbCust.points || 0, balance: dbCust.balance || 0 };
