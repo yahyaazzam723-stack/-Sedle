@@ -2218,7 +2218,7 @@
         _authSendInProgress = true;
         if (_sendBtn) { _sendBtn.disabled = true; _sendBtn.innerText = '⏳ جاري الإنشاء...'; }
         try {
-            // [FIX-AUTH-REDESIGN] فحص إن كان البريد مسجَّلاً بالفعل
+            // [FIX-AUTH-REDESIGN] فحص إن كان البريد مسجَّلاً بالفعل ومفعَّلاً
             const { data: existing } = await _supabase.from('customers').select('id,is_activated').eq('email', email).maybeSingle();
             if (existing && existing.is_activated) {
                 showNotify("هذا البريد مسجَّل بالفعل، يرجى تسجيل الدخول بدلاً من ذلك", "error");
@@ -2231,17 +2231,12 @@
                 return;
             }
 
-            if (existing && !existing.is_activated) {
-                // محاولة تسجيل سابقة غير مكتملة — نحدّث بياناته بدل إنشاء صف مكرَّر
-                await _supabase.from('customers').update({ name: n, phone: ph, address: addr }).eq('id', existing.id);
-            } else {
-                // [FIX-AUTH-REDESIGN] إنشاء الصف فوراً ببيانات حقيقية كاملة (لا بيانات وهمية أبداً)،
-                // لكن is_activated يبقى false حتى ينجح التحقق من الرمز
-                await _supabase.from('customers').insert([{
-                    email, name: n, phone: ph, address: addr, points: 0, balance: 0,
-                    is_activated: false, auto_username: _generateAutoUsername('CUS')
-                }]);
-            }
+            // [FIX-AUTH-ID-MISMATCH] لا نُنشئ أو نُحدِّث أي صف في customers هنا إطلاقاً — معرّف
+            // المستخدم الحقيقي في نظام المصادقة (auth.users.id) غير معروف بعد في هذه اللحظة، ولا
+            // يتوفر إلا بعد نجاح التحقق من الرمز في verifyOtp(). إنشاء الصف الآن بمعرّف عشوائي منفصل
+            // كان يعني أن أي تحديث لاحق لحالة "التفعيل" باستخدام المعرّف الحقيقي لن يجد هذا الصف
+            // إطلاقاً، فيبقى الحساب غير مفعَّل بقاعدة البيانات إلى الأبد رغم دخول المستخدم فعلياً محلياً.
+            // نحتفظ فقط بالبيانات مؤقتاً بالذاكرة، وننشئ الصف الحقيقي بعد التحقق الناجح مباشرة.
 
             _registerCurrentEmail = email;
             _registerPendingData = { name: n, phone: ph, address: addr, email };
@@ -2297,10 +2292,21 @@
                 boxes[0].focus();
                 return;
             }
-            // [FIX-AUTH-REDESIGN] التفعيل الفعلي — فقط الآن يصبح الحساب معتبراً "مفعَّلاً"
-            await _supabase.from('customers').update({ is_activated: true }).eq('id', data.user.id);
-            document.getElementById('register-otp-status-msg').innerText = '✅ تم تفعيل حسابك بنجاح';
+            // [FIX-AUTH-ID-MISMATCH] الآن فقط نعرف المعرّف الحقيقي للمستخدم في نظام المصادقة —
+            // ننشئ صف العميل هنا مباشرة بهذا المعرّف الصحيح، ونجعله مفعَّلاً فوراً (التحقق نجح للتو).
+            // نحذف أولاً أي صف قديم بنفس البريد قد يكون تبقّى من محاولة سابقة بمعرّف غير مرتبط (مثل
+            // الصفوف المُنشأة قبل هذا الإصلاح)، لضمان وجود صف واحد فقط مرتبط بشكل صحيح دائماً
             const p = _registerPendingData || {};
+            try { await _supabase.from('customers').delete().eq('email', _registerCurrentEmail); } catch(_delErr) {}
+            const { error: _insErr } = await _supabase.from('customers').insert([{
+                id: data.user.id, email: _registerCurrentEmail, name: p.name, phone: p.phone, address: p.address,
+                points: 0, balance: 0, is_activated: true, auto_username: _generateAutoUsername('CUS')
+            }]);
+            if (_insErr) {
+                document.getElementById('register-otp-status-msg').innerText = '⚠️ تم التحقق لكن تعذّر إنشاء الحساب: ' + _insErr.message;
+                return;
+            }
+            document.getElementById('register-otp-status-msg').innerText = '✅ تم تفعيل حسابك بنجاح';
             currentUser = { uid: data.user.id, name: p.name, email: p.email || data.user.email, phone: p.phone, address: p.address, points: 0, balance: 0 };
             localStorage.setItem('shahen_user', JSON.stringify(currentUser));
             window._authFlowHandledSignIn = true;
